@@ -12,7 +12,10 @@
 	aliases {
 		led-strip = &led_strip;
 	};
+};
 
+
+/ {
 	epd_cfg: epd_cfg {
 		epd-dc-gpios = <&gpio0 3 GPIO_ACTIVE_HIGH>;
 		epd-cs-gpios = <&gpio0 4 GPIO_ACTIVE_LOW>;

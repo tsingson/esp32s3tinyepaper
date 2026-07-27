@@ -8,6 +8,8 @@
 #include <zephyr/kernel.h>
 #include <zephyr/sys/printk.h>
 
+#include "zpix12_font_data.h"
+
 #define EPD_WIDTH 200
 #define EPD_HEIGHT 200
 #define EPD_FB_SIZE ((EPD_WIDTH * EPD_HEIGHT) / 8)
@@ -173,6 +175,120 @@ static void epd_fb_draw_text5x7(int x, int y, const char *text, bool black)
 {
 	for (size_t i = 0; text[i] != '\0'; i++) {
 		epd_fb_draw_char5x7(x + (int)i * 6, y, text[i], black);
+	}
+}
+
+/* Extracted from fonts/zpix.bdf (SIZE 12), glyphs U+4E2D and U+6587, BBX 11x11 */
+static const zpix12_glyph_t *zpix12_find_glyph(uint32_t codepoint)
+{
+	size_t left = 0;
+	size_t right = zpix12_font_glyphs_count;
+
+	while (left < right) {
+		size_t mid = left + (right - left) / 2;
+		uint32_t cp = zpix12_font_glyphs[mid].codepoint;
+
+		if (cp == codepoint) {
+			return &zpix12_font_glyphs[mid];
+		}
+		if (cp < codepoint) {
+			left = mid + 1;
+		} else {
+			right = mid;
+		}
+	}
+
+	return NULL;
+}
+
+static uint32_t utf8_decode_one(const char **s)
+{
+	const uint8_t *p = (const uint8_t *)(*s);
+
+	if (p[0] == '\0') {
+		return 0;
+	}
+
+	if ((p[0] & 0x80) == 0) {
+		*s += 1;
+		return p[0];
+	}
+
+	if ((p[0] & 0xE0) == 0xC0 && (p[1] & 0xC0) == 0x80) {
+		uint32_t cp = ((uint32_t)(p[0] & 0x1F) << 6) | (uint32_t)(p[1] & 0x3F);
+		*s += 2;
+		return cp;
+	}
+
+	if ((p[0] & 0xF0) == 0xE0 && (p[1] & 0xC0) == 0x80 && (p[2] & 0xC0) == 0x80) {
+		uint32_t cp = ((uint32_t)(p[0] & 0x0F) << 12) |
+				      ((uint32_t)(p[1] & 0x3F) << 6) |
+				      (uint32_t)(p[2] & 0x3F);
+		*s += 3;
+		return cp;
+	}
+
+	if ((p[0] & 0xF8) == 0xF0 && (p[1] & 0xC0) == 0x80 &&
+	    (p[2] & 0xC0) == 0x80 && (p[3] & 0xC0) == 0x80) {
+		uint32_t cp = ((uint32_t)(p[0] & 0x07) << 18) |
+				      ((uint32_t)(p[1] & 0x3F) << 12) |
+				      ((uint32_t)(p[2] & 0x3F) << 6) |
+				      (uint32_t)(p[3] & 0x3F);
+		*s += 4;
+		return cp;
+	}
+
+	/* Invalid UTF-8 byte sequence; skip one byte and render fallback. */
+	*s += 1;
+	return '?';
+}
+
+static void epd_fb_draw_glyph12(int x, int y, const zpix12_glyph_t *glyph, bool black)
+{
+	if (glyph == NULL) {
+		return;
+	}
+
+	for (int row = 0; row < 12; row++) {
+		uint16_t bits = glyph->rows[row];
+		for (int col = 0; col < 12; col++) {
+			if ((bits & BIT(11 - col)) != 0U) {
+				epd_fb_set_pixel(x + col, y + row, black);
+			}
+		}
+	}
+}
+
+static void epd_fb_draw_utf8_text12(int x, int y, const char *text, int max_cols, int max_rows, bool black)
+{
+	int col = 0;
+	int row = 0;
+	const char *p = text;
+
+	while (*p != '\0' && row < max_rows) {
+		if (*p == '\n') {
+			p++;
+			col = 0;
+			row++;
+			continue;
+		}
+
+		if (col >= max_cols) {
+			col = 0;
+			row++;
+			if (row >= max_rows) {
+				break;
+			}
+		}
+
+		uint32_t cp = utf8_decode_one(&p);
+		const zpix12_glyph_t *glyph = zpix12_find_glyph(cp);
+		if (glyph == NULL) {
+			glyph = zpix12_find_glyph('?');
+		}
+
+		epd_fb_draw_glyph12(x + col * 12, y + row * 12, glyph, black);
+		col++;
 	}
 }
 
@@ -551,5 +667,31 @@ int epd200x200_show_grayscale_transition(void)
 	}
 
 	printk("EPD: grayscale transition drawn\n");
+	return 0;
+}
+
+int epd200x200_show_chinese_demo(void)
+{
+	int ret;
+	static const char *const pages[] = {
+		"zpix字库最小化完成\n保留:英文/符号\n和常用简体中文\nzpix字库最小化完成\n保留:英文/符号\n和常用简体中文\nzpix字库最小化完成\n保留:英文/符号\n和常用简体中文",
+		"原始:3.0M 396992行\n子集:1.0M 133584行\n体积约减少66%",
+		"共保留7515字形\n缺失25字形\n可在extra文件补充",
+	};
+	const int page_count = sizeof(pages) / sizeof(pages[0]);
+
+	for (int i = 0; i < page_count; i++) {
+		epd_fb_clear(false);
+		epd_fb_draw_utf8_text12(4, 30, pages[i], 16, 12, true);
+
+		ret = epd_present_framebuf();
+		if (ret < 0) {
+			return ret;
+		}
+
+		k_sleep(K_SECONDS(3));
+	}
+
+	printk("EPD: paged Chinese summary drawn\n");
 	return 0;
 }

@@ -73,9 +73,9 @@ int main(void) {
 
     ret = epd200x200_init();
     if (ret == 0) {
-        ret = epd200x200_show_grayscale_transition();
+        ret = epd200x200_show_chinese_demo();
         if (ret < 0) {
-            printk("EPD grayscale failed: %d\n", ret);
+            printk("EPD chinese demo failed: %d\n", ret);
         }
     } else {
         printk("EPD init failed: %d\n", ret);

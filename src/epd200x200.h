@@ -7,5 +7,6 @@ int epd200x200_init(void);
 int epd200x200_clear(bool black);
 int epd200x200_show_demo(void);
 int epd200x200_show_grayscale_transition(void);
+int epd200x200_show_chinese_demo(void);
 
 #endif
