@@ -1,0 +1,71 @@
+#include <zephyr/dt-bindings/led/led.h>
+#include <zephyr/dt-bindings/gpio/gpio.h>
+#include <zephyr/dt-bindings/pinctrl/esp32s3-pinctrl.h>
+
+/ {
+	chosen {
+		/* 将系统控制台绑定到 ESP32-S3 内置的 USB-JTAG 串行外设上 */
+		zephyr,console = &usb_serial;
+		zephyr,shell-uart = &usb_serial;
+	};
+
+	aliases {
+		led-strip = &led_strip;
+	};
+
+	epd_cfg: epd_cfg {
+		epd-dc-gpios = <&gpio0 3 GPIO_ACTIVE_HIGH>;
+		epd-cs-gpios = <&gpio0 4 GPIO_ACTIVE_LOW>;
+		epd-busy-gpios = <&gpio0 5 GPIO_ACTIVE_HIGH>;
+		epd-reset-gpios = <&gpio0 6 GPIO_ACTIVE_HIGH>;
+	};
+};
+
+&pinctrl {
+	epd_spi3_default: epd_spi3_default {
+		group1 {
+			pinmux = <SPIM3_SCLK_GPIO1>,
+				 <SPIM3_MOSI_GPIO2>;
+		};
+	};
+};
+
+&i2c0 {
+	status = "disabled";
+};
+
+&i2c1 {
+	status = "disabled";
+};
+
+&spi3 {
+	status = "okay";
+	pinctrl-0 = <&epd_spi3_default>;
+	pinctrl-names = "default";
+};
+
+&i2s0_default {
+	group1 {
+		pinmux = <I2S0_O_SD_GPIO38>;
+	};
+};
+
+&i2s0 {
+	status = "okay";
+
+	led_strip: ws2812@0 {
+		compatible = "worldsemi,ws2812-i2s";
+		reg = <0>;
+		chain-length = <1>;
+		color-mapping = <LED_COLOR_ID_GREEN LED_COLOR_ID_RED LED_COLOR_ID_BLUE>;
+		reset-delay = <300>;
+	};
+};
+
+&dma {
+	status = "okay";
+};
+
+&usb_serial {
+	status = "okay";
+};
