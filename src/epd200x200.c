@@ -13,6 +13,8 @@
 #define EPD_WIDTH 200
 #define EPD_HEIGHT 200
 #define EPD_FB_SIZE ((EPD_WIDTH * EPD_HEIGHT) / 8)
+#define EPD_CHINESE_LINE_SPACING_DEFAULT 3
+#define EPD_CHINESE_COLUMN_SPACING_DEFAULT 0
 
 #define EPD_DC_PIN 3
 #define EPD_CS_PIN 4
@@ -29,6 +31,8 @@ static const struct spi_config epd_spi_cfg = {
 };
 
 static uint8_t epd_framebuf[EPD_FB_SIZE];
+static int epd_chinese_line_spacing = EPD_CHINESE_LINE_SPACING_DEFAULT;
+static int epd_chinese_column_spacing = EPD_CHINESE_COLUMN_SPACING_DEFAULT;
 
 static void epd_fb_clear(bool black)
 {
@@ -259,11 +263,22 @@ static void epd_fb_draw_glyph12(int x, int y, const zpix12_glyph_t *glyph, bool 
 	}
 }
 
-static void epd_fb_draw_utf8_text12(int x, int y, const char *text, int max_cols, int max_rows, bool black)
+static void epd_fb_draw_utf8_text12(int x, int y, const char *text, int max_cols, int max_rows,
+				     int line_spacing, bool black)
 {
 	int col = 0;
 	int row = 0;
+	int line_pitch = 12 + line_spacing;
+	int col_pitch = 12 + epd_chinese_column_spacing;
 	const char *p = text;
+
+	if (line_spacing < 0) {
+		line_pitch = 12;
+	}
+
+	if (epd_chinese_column_spacing < 0) {
+		col_pitch = 12;
+	}
 
 	while (*p != '\0' && row < max_rows) {
 		if (*p == '\n') {
@@ -287,9 +302,27 @@ static void epd_fb_draw_utf8_text12(int x, int y, const char *text, int max_cols
 			glyph = zpix12_find_glyph('?');
 		}
 
-		epd_fb_draw_glyph12(x + col * 12, y + row * 12, glyph, black);
+		epd_fb_draw_glyph12(x + col * col_pitch, y + row * line_pitch, glyph, black);
 		col++;
 	}
+}
+
+void epd200x200_set_chinese_line_spacing(int spacing)
+{
+	if (spacing < 0) {
+		spacing = 0;
+	}
+
+	epd_chinese_line_spacing = spacing;
+}
+
+void epd200x200_set_chinese_column_spacing(int spacing)
+{
+	if (spacing < 0) {
+		spacing = 0;
+	}
+
+	epd_chinese_column_spacing = spacing;
 }
 
 static int epd_write_bytes(bool is_data, const uint8_t *data, size_t len)
@@ -674,15 +707,16 @@ int epd200x200_show_chinese_demo(void)
 {
 	int ret;
 	static const char *const pages[] = {
-		"zpix字库最小化完成\n保留:英文/符号\n和常用简体中文\nzpix字库最小化完成\n保留:英文/符号\n和常用简体中文\nzpix字库最小化完成\n保留:英文/符号\n和常用简体中文",
 		"原始:3.0M 396992行\n子集:1.0M 133584行\n体积约减少66%",
-		"共保留7515字形\n缺失25字形\n可在extra文件补充",
+	"共保留7515字形\n缺失25字形\n可在extra文件补充",
+		"zpix字库最小化完成保留:英文1 符号和常用简体中文2  zpix字库最小化完成3 保留:英文/符号\n和常用简体中文\nzpix字库最小化完成\n保留:英文/符号\n和常用简体中文",
+
 	};
 	const int page_count = sizeof(pages) / sizeof(pages[0]);
 
 	for (int i = 0; i < page_count; i++) {
 		epd_fb_clear(false);
-		epd_fb_draw_utf8_text12(4, 30, pages[i], 16, 12, true);
+		epd_fb_draw_utf8_text12(4, 30, pages[i], 16, 12, epd_chinese_line_spacing, true);
 
 		ret = epd_present_framebuf();
 		if (ret < 0) {

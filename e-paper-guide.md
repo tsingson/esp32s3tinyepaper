@@ -111,12 +111,23 @@ python3 tools/zpix_bdf_to_c.py
 
 - epd_fb_draw_glyph12：绘制单个 12x12 字形
 - epd_fb_draw_utf8_text12：绘制 UTF-8 多行文本
+- epd200x200_set_chinese_line_spacing：设置行间距（像素）
+- epd200x200_set_chinese_column_spacing：设置列间距/字间距（像素）
 
 行为：
 
 - 支持 '\n' 换行。
 - 通过 max_cols/max_rows 限制绘制区域。
 - 字形缺失时使用 '?' 作为回退。
+- 行间距默认 3 像素（字高 12，所以行步进为 12 + 行间距）。
+- 列间距默认 0 像素（字宽 12，所以列步进为 12 + 列间距）。
+- 间距参数小于 0 时会被钳制为 0。
+
+配置示例（在调用中文演示前设置）：
+
+epd200x200_set_chinese_line_spacing(3);
+epd200x200_set_chinese_column_spacing(1);
+epd200x200_show_chinese_demo();
 
 ## 5. 分页显示（每页 3 秒）
 
@@ -158,6 +169,7 @@ python3 tools/zpix_bdf_to_c.py
 
 - 直接修改 src/epd200x200.c 中 pages[] 内容。
 - 若出现乱码或缺字，优先检查该字是否在子集字库中。
+- 如需调整排版密度，可在调用演示函数前设置行间距和列间距。
 
 ### 7.2 新增缺失汉字
 
@@ -192,7 +204,7 @@ python3 tools/zpix_bdf_to_c.py
 ### Q2: 字符位置不整齐
 
 - 本工程统一使用 12x12 字格，渲染时按固定栅格布局。
-- 若要更紧凑，可调整 epd_fb_draw_utf8_text12 的列宽策略。
+- 可通过 epd200x200_set_chinese_line_spacing 和 epd200x200_set_chinese_column_spacing 调整疏密。
 
 ### Q3: 翻页太快/太慢
 
