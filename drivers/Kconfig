@@ -1,0 +1,5 @@
+menu "Application Drivers"
+
+rsource "ec801e/Kconfig"
+
+endmenu

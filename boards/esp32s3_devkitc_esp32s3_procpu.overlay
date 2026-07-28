@@ -11,6 +11,7 @@
 
 	aliases {
 		led-strip = &led_strip;
+		e801-uart = &uart1;
 	};
 };
 
@@ -22,6 +23,13 @@
 		epd-busy-gpios = <&gpio0 5 GPIO_ACTIVE_HIGH>;
 		epd-reset-gpios = <&gpio0 6 GPIO_ACTIVE_HIGH>;
 	};
+
+	ec801e_mdm: ec801e_mdm {
+		compatible = "quectel,ec801e";
+		status = "okay";
+		mdm-uart = <&uart1>;
+		mdm-power-gpios = <&gpio0 9 GPIO_ACTIVE_LOW>;
+	};
 };
 
 &pinctrl {
@@ -29,6 +37,12 @@
 		group1 {
 			pinmux = <SPIM3_SCLK_GPIO1>,
 				 <SPIM3_MOSI_GPIO2>;
+		};
+	};
+
+	uart1_modem_default: uart1_modem_default {
+		group1 {
+			pinmux = <UART1_TX_GPIO8>, <UART1_RX_GPIO7>;
 		};
 	};
 };
@@ -44,6 +58,13 @@
 &spi3 {
 	status = "okay";
 	pinctrl-0 = <&epd_spi3_default>;
+	pinctrl-names = "default";
+};
+
+&uart1 {
+	status = "okay";
+	current-speed = <115200>;
+	pinctrl-0 = <&uart1_modem_default>;
 	pinctrl-names = "default";
 };
 

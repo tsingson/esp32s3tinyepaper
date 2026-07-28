@@ -1,0 +1,23 @@
+config EC801E
+	bool "Quectel EC801E modem driver"
+	depends on GPIO
+	depends on SERIAL
+	depends on NET_SOCKETS_OFFLOAD
+	default y
+	help
+	  Enable the application-local Quectel EC801E modem socket offload driver.
+
+config EC801E_APN
+	string "EC801E default APN"
+	depends on EC801E
+	default "CMNET"
+	help
+	  Default APN used when the driver prepares the PDP context.
+
+config EC801E_VERBOSE_LOG
+	bool "EC801E verbose AT/socket logs"
+	depends on EC801E
+	default n
+	help
+	  Enable detailed AT command and socket I/O tracing logs.
+	  Keep disabled in normal runs to reduce serial output noise.
