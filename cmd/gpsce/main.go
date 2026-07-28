@@ -72,7 +72,6 @@ func readFull(conn net.Conn, buf []byte, timeout time.Duration) error {
 	return fmt.Errorf("read exhausted retries bytes=%d/%d", total, len(buf))
 }
 
-
 func writeFull(conn net.Conn, buf []byte, timeout time.Duration) error {
 	for len(buf) > 0 {
 		if err := conn.SetWriteDeadline(time.Now().Add(timeout)); err != nil {
@@ -117,6 +116,14 @@ func readFrame(conn net.Conn, timeout time.Duration) ([]byte, error) {
 		return nil, fmt.Errorf("read payload: %w", err)
 	}
 	log.Printf("rx payload remote=%s bytes=%d preview=%s", conn.RemoteAddr(), len(payload), previewBytes(payload, 16))
+
+	load := new(Drone)
+	load.Decode(payload)
+	if load != nil {
+		log.Printf("drone: %s", load.String())
+
+		log.Printf("gps: %f %f  ", load.Position.Longitude, load.Position.Latitude)
+	}
 	return payload, nil
 }
 
