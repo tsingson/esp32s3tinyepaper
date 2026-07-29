@@ -7,4 +7,8 @@ west flash --erase && west espressif monitor
 
 
 
+west espressif monitor --port /dev/cu.usbmodem2101
+
+
+
 
