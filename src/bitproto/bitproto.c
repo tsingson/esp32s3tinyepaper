@@ -3,6 +3,19 @@
 
 #include "bitproto.h"
 
+int32_t BpFloatToInt32(double v) {
+    double s = v * BP_FLOAT_SCALE;
+    if (s > (double)INT32_MAX) {
+        return INT32_MAX;
+    }
+    if (s < (double)INT32_MIN) {
+        return INT32_MIN;
+    }
+    return (int32_t)(s >= 0 ? (s + 0.5) : (s - 0.5));
+}
+
+double BpInt32ToFloat(int32_t v) { return ((double)v) / BP_FLOAT_SCALE; }
+
 // Big-endian host detection. bitproto's wire format is little-endian (the i-th
 // byte on the wire holds the i-th least-significant bits of a field). On a
 // big-endian host the in-memory byte order of an integer is reversed relative

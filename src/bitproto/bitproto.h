@@ -28,6 +28,12 @@ extern "C" {
 // Macros
 ////////////////////
 
+// Fixed-point helpers used by generated code for float/double fields.
+#define BP_FLOAT_SCALE 100000000.0
+
+int32_t BpFloatToInt32(double v);
+double BpInt32ToFloat(int32_t v);
+
 // BpType Flags.
 
 #define BP_TYPE_BOOL 1

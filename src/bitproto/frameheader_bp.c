@@ -3,6 +3,7 @@
 #include "frameheader_bp.h"
 
 void BpNativeProcessFrameHeader(void *data, struct BpProcessorContext *ctx);
+void BpNativeJsonFormatFrameHeader(void *data, struct BpJsonFormatContext *ctx);
 
 void BpFieldDescriptorsInitFrameHeader(struct FrameHeader *m, struct BpMessageFieldDescriptor *fds) {
     fds[0] = BpMessageFieldDescriptor((void *)&(m->magic), BpUint(8, sizeof(uint8_t)), "magic");
@@ -19,6 +20,14 @@ void BpNativeProcessFrameHeader(void *data, struct BpProcessorContext *ctx) {
     BpEndecodeMessage(&descriptor, ctx, data);
 }
 
+void BpNativeJsonFormatFrameHeader(void *data, struct BpJsonFormatContext *ctx) {
+    struct FrameHeader *m = (struct FrameHeader *)(data);
+    struct BpMessageFieldDescriptor field_descriptors[4];
+    BpFieldDescriptorsInitFrameHeader(m, field_descriptors);
+    struct BpMessageDescriptor descriptor = BpMessageDescriptor(false, 4, 32, field_descriptors);
+    BpJsonFormatMessage(&descriptor, ctx, data);
+}
+
 size_t EncodeFrameHeader(struct FrameHeader *m, unsigned char *s) {
     struct BpProcessorContext ctx = BpProcessorContext(true, s);
     BpNativeProcessFrameHeader((void *)m, &ctx);
@@ -32,8 +41,8 @@ size_t DecodeFrameHeader(struct FrameHeader *m, unsigned char *s) {
 }
 
 int JsonFrameHeader(struct FrameHeader *m, char *s) {
-    (void)m;
-    if (s) { s[0] = '{'; s[1] = '}'; s[2] = '\0'; }
-    return 2;
+    struct BpJsonFormatContext ctx = BpJsonFormatContext(s);
+    BpNativeJsonFormatFrameHeader((void *)m, &ctx);
+    return ctx.n;
 }
 
