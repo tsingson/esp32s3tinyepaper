@@ -1,9 +1,18 @@
 // Frame header schema shared by C and Go for TCP stream framing.
 proto frameheader;
 
+const FRAME_MAGIC = 0xB1;
+
 enum PayloadType : uint5 {
     PAYLOAD_TYPE_UNKNOWN = 0;
     PAYLOAD_TYPE_DRONE = 1;
+    PAYLOAD_TYPE_HEARTBEAT = 2;
+    PAYLOAD_TYPE_COMMAND = 3;
+    PAYLOAD_TYPE_FLIGHT = 4;
+    PAYLOAD_TYPE_POSITION = 5;
+    PAYLOAD_TYPE_MOVEMENT = 6;
+    PAYLOAD_TYPE_RESULT = 7;
+
 }
 
 enum ProtocolVersion : uint3 {

@@ -5,34 +5,24 @@ package fh
 import (
 	"encoding/json"
 	bp "github.com/tsingson/bitproto/lib/go"
-	"math"
 )
 
 var jsonMarshal = json.Marshal
 var _ = bp.Useless
 
-const BP_FLOAT_SCALE float64 = 100000000.0
-
-func BpFloatToInt32(v float64) int32 {
-	s := v * BP_FLOAT_SCALE
-	if s > float64(math.MaxInt32) {
-		return math.MaxInt32
-	}
-	if s < float64(math.MinInt32) {
-		return math.MinInt32
-	}
-	return int32(math.Round(s))
-}
-
-func BpInt32ToFloat(v int32) float64 {
-	return float64(v) / BP_FLOAT_SCALE
-}
+const FRAME_MAGIC int = 0xB1
 
 type PayloadType uint8
 
 const (
 	PAYLOAD_TYPE_UNKNOWN PayloadType = 0
-	PAYLOAD_TYPE_DRONE               = 1
+	PAYLOAD_TYPE_DRONE = 1
+	PAYLOAD_TYPE_HEARTBEAT = 2
+	PAYLOAD_TYPE_COMMAND = 3
+	PAYLOAD_TYPE_FLIGHT = 4
+	PAYLOAD_TYPE_POSITION = 5
+	PAYLOAD_TYPE_MOVEMENT = 6
+	PAYLOAD_TYPE_RESULT = 7
 )
 
 func (m PayloadType) BpProcessor() bp.Processor {
@@ -43,7 +33,7 @@ type ProtocolVersion uint8
 
 const (
 	PROTOCOL_VERSION_UNKNOWN ProtocolVersion = 0
-	PROTOCOL_VERSION_V1                      = 1
+	PROTOCOL_VERSION_V1 = 1
 )
 
 func (m ProtocolVersion) BpProcessor() bp.Processor {
@@ -51,10 +41,10 @@ func (m ProtocolVersion) BpProcessor() bp.Processor {
 }
 
 type FrameHeader struct {
-	Magic         uint8           `json:"magic"`
-	Version       ProtocolVersion `json:"version"`
-	PayloadType   PayloadType     `json:"payload_type"`
-	PayloadLength uint16          `json:"payload_length"`
+	Magic uint8 `json:"magic"`
+	Version ProtocolVersion `json:"version"`
+	PayloadType PayloadType `json:"payload_type"`
+	PayloadLength uint16 `json:"payload_length"`
 }
 
 const BYTES_LENGTH_FRAMEHEADER uint32 = 4
@@ -130,3 +120,4 @@ func (m *FrameHeader) BpProcessInt(di *bp.DataIndexer) {
 		return
 	}
 }
+

@@ -12,17 +12,6 @@
 
 #include "bitproto.h"
 
-#define BP_FLOAT_SCALE 100000000.0
-static inline int32_t BpFloatToInt32(double v) {
-    double s = v * BP_FLOAT_SCALE;
-    if (s > (double)INT32_MAX) { return INT32_MAX; }
-    if (s < (double)INT32_MIN) { return INT32_MIN; }
-    return (int32_t)(s >= 0 ? (s + 0.5) : (s - 0.5));
-}
-static inline double BpInt32ToFloat(int32_t v) {
-    return ((double)v) / BP_FLOAT_SCALE;
-}
-
 typedef int64_t Timestamp;
 typedef int32_t TernaryInt32[3];
 

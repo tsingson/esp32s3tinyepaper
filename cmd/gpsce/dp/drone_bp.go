@@ -5,28 +5,10 @@ package dp
 import (
 	"encoding/json"
 	bp "github.com/tsingson/bitproto/lib/go"
-	"math"
 )
 
 var jsonMarshal = json.Marshal
 var _ = bp.Useless
-
-const BP_FLOAT_SCALE float64 = 100000000.0
-
-func BpFloatToInt32(v float64) int32 {
-	s := v * BP_FLOAT_SCALE
-	if s > float64(math.MaxInt32) {
-		return math.MaxInt32
-	}
-	if s < float64(math.MinInt32) {
-		return math.MinInt32
-	}
-	return int32(math.Round(s))
-}
-
-func BpInt32ToFloat(v int32) float64 {
-	return float64(v) / BP_FLOAT_SCALE
-}
 
 type Timestamp int64
 
@@ -44,10 +26,10 @@ type DroneStatus uint8
 
 const (
 	DRONE_STATUS_UNKNOWN DroneStatus = 0
-	DRONE_STATUS_STANDBY             = 1
-	DRONE_STATUS_RISING              = 2
-	DRONE_STATUS_LANDING             = 3
-	DRONE_STATUS_FLYING              = 4
+	DRONE_STATUS_STANDBY = 1
+	DRONE_STATUS_RISING = 2
+	DRONE_STATUS_LANDING = 3
+	DRONE_STATUS_FLYING = 4
 )
 
 func (m DroneStatus) BpProcessor() bp.Processor {
@@ -57,9 +39,9 @@ func (m DroneStatus) BpProcessor() bp.Processor {
 type PropellerStatus uint8
 
 const (
-	PROPELLER_STATUS_UNKNOWN  PropellerStatus = 0
-	PROPELLER_STATUS_IDLE                     = 1
-	PROPELLER_STATUS_ROTATING                 = 2
+	PROPELLER_STATUS_UNKNOWN PropellerStatus = 0
+	PROPELLER_STATUS_IDLE = 1
+	PROPELLER_STATUS_ROTATING = 2
 )
 
 func (m PropellerStatus) BpProcessor() bp.Processor {
@@ -69,9 +51,9 @@ func (m PropellerStatus) BpProcessor() bp.Processor {
 type RotatingDirection uint8
 
 const (
-	ROTATING_DIRECTION_UNKNOWN         RotatingDirection = 0
-	ROTATING_DIRECTION_CLOCK_WISE                        = 1
-	ROTATING_DIRECTION_ANTI_CLOCK_WISE                   = 2
+	ROTATING_DIRECTION_UNKNOWN RotatingDirection = 0
+	ROTATING_DIRECTION_CLOCK_WISE = 1
+	ROTATING_DIRECTION_ANTI_CLOCK_WISE = 2
 )
 
 func (m RotatingDirection) BpProcessor() bp.Processor {
@@ -82,8 +64,8 @@ type PowerStatus uint8
 
 const (
 	POWER_STATUS_UNKNOWN PowerStatus = 0
-	POWER_STATUS_OFF                 = 1
-	POWER_STATUS_ON                  = 2
+	POWER_STATUS_OFF = 1
+	POWER_STATUS_ON = 2
 )
 
 func (m PowerStatus) BpProcessor() bp.Processor {
@@ -93,9 +75,9 @@ func (m PowerStatus) BpProcessor() bp.Processor {
 type LandingGearStatus uint8
 
 const (
-	LANDING_GEAR_STATUS_UNKNOWN  LandingGearStatus = 0
-	LANDING_GEAR_STATUS_UNFOLDED                   = 1
-	LANDING_GEAR_STATUS_FOLDED                     = 2
+	LANDING_GEAR_STATUS_UNKNOWN LandingGearStatus = 0
+	LANDING_GEAR_STATUS_UNFOLDED = 1
+	LANDING_GEAR_STATUS_FOLDED = 2
 )
 
 func (m LandingGearStatus) BpProcessor() bp.Processor {
@@ -103,19 +85,19 @@ func (m LandingGearStatus) BpProcessor() bp.Processor {
 }
 
 type Propeller struct {
-	Id        uint8             `json:"id"`
-	Status    PropellerStatus   `json:"status"`
+	Id uint8 `json:"id"`
+	Status PropellerStatus `json:"status"`
 	Direction RotatingDirection `json:"direction"`
 }
 
 type Power struct {
-	Battery    uint8       `json:"battery"`
-	Status     PowerStatus `json:"status"`
-	IsCharging bool        `json:"is_charging"`
+	Battery uint8 `json:"battery"`
+	Status PowerStatus `json:"status"`
+	IsCharging bool `json:"is_charging"`
 }
 
 type Network struct {
-	Signal      uint8     `json:"signal"`
+	Signal uint8 `json:"signal"`
 	HeartbeatAt Timestamp `json:"heartbeat_at"`
 }
 
@@ -124,31 +106,31 @@ type LandingGear struct {
 }
 
 type Position struct {
-	Latitude  int32 `json:"latitude"`
+	Latitude int32 `json:"latitude"`
 	Longitude int32 `json:"longitude"`
-	Altitude  int32 `json:"altitude"`
+	Altitude int32 `json:"altitude"`
 }
 
 type Pose struct {
-	Yaw   int32 `json:"yaw"`
+	Yaw int32 `json:"yaw"`
 	Pitch int32 `json:"pitch"`
-	Roll  int32 `json:"roll"`
+	Roll int32 `json:"roll"`
 }
 
 type Flight struct {
-	Pose         Pose         `json:"pose"`
-	Velocity     TernaryInt32 `json:"velocity"`
+	Pose Pose `json:"pose"`
+	Velocity TernaryInt32 `json:"velocity"`
 	Acceleration TernaryInt32 `json:"acceleration"`
 }
 
 type Drone struct {
-	Status      DroneStatus  `json:"status"`
-	Position    Position     `json:"position"`
-	Flight      Flight       `json:"flight"`
-	Propellers  [4]Propeller `json:"propellers"`
-	Power       Power        `json:"power"`
-	Network     Network      `json:"network"`
-	LandingGear LandingGear  `json:"landing_gear"`
+	Status DroneStatus `json:"status"`
+	Position Position `json:"position"`
+	Flight Flight `json:"flight"`
+	Propellers [4]Propeller `json:"propellers"`
+	Power Power `json:"power"`
+	Network Network `json:"network"`
+	LandingGear LandingGear `json:"landing_gear"`
 }
 
 const BYTES_LENGTH_PROPELLER uint32 = 2
@@ -421,27 +403,27 @@ func (m *Position) String() string {
 }
 
 func (m *Position) SetLatitudeFloat(v float64) {
-	m.Latitude = int32(BpFloatToInt32(v))
+	m.Latitude = int32(bp.BpFloatToInt32(v))
 }
 
 func (m *Position) GetLatitudeFloat() float64 {
-	return BpInt32ToFloat(int32(m.Latitude))
+	return bp.BpInt32ToFloat(int32(m.Latitude))
 }
 
 func (m *Position) SetLongitudeFloat(v float64) {
-	m.Longitude = int32(BpFloatToInt32(v))
+	m.Longitude = int32(bp.BpFloatToInt32(v))
 }
 
 func (m *Position) GetLongitudeFloat() float64 {
-	return BpInt32ToFloat(int32(m.Longitude))
+	return bp.BpInt32ToFloat(int32(m.Longitude))
 }
 
 func (m *Position) SetAltitudeFloat(v float64) {
-	m.Altitude = int32(BpFloatToInt32(v))
+	m.Altitude = int32(bp.BpFloatToInt32(v))
 }
 
 func (m *Position) GetAltitudeFloat() float64 {
-	return BpInt32ToFloat(int32(m.Altitude))
+	return bp.BpInt32ToFloat(int32(m.Altitude))
 }
 
 func (m *Position) Encode() []byte {
@@ -710,3 +692,4 @@ func (m *Drone) BpProcessInt(di *bp.DataIndexer) {
 		return
 	}
 }
+

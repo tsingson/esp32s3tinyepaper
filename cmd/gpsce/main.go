@@ -13,9 +13,9 @@ import (
 )
 
 const (
-	frameMagic       = byte(0xB1)
-	ioRetries        = 3
-	acceptRetries    = 3
+	frameMagic    = byte(0xB1)
+	ioRetries     = 3
+	acceptRetries = 3
 )
 
 func previewBytes(buf []byte, limit int) string {

@@ -12,20 +12,17 @@
 
 #include "bitproto.h"
 
-#define BP_FLOAT_SCALE 100000000.0
-// static inline int32_t BpFloatToInt32(double v) {
-//     double s = v * BP_FLOAT_SCALE;
-//     if (s > (double)INT32_MAX) { return INT32_MAX; }
-//     if (s < (double)INT32_MIN) { return INT32_MIN; }
-//     return (int32_t)(s >= 0 ? (s + 0.5) : (s - 0.5));
-// }
-// static inline double BpInt32ToFloat(int32_t v) {
-//     return ((double)v) / BP_FLOAT_SCALE;
-// }
+#define FRAME_MAGIC 0xB1
 
 typedef uint8_t PayloadType;
 #define PAYLOAD_TYPE_UNKNOWN 0
 #define PAYLOAD_TYPE_DRONE 1
+#define PAYLOAD_TYPE_HEARTBEAT 2
+#define PAYLOAD_TYPE_COMMAND 3
+#define PAYLOAD_TYPE_FLIGHT 4
+#define PAYLOAD_TYPE_POSITION 5
+#define PAYLOAD_TYPE_MOVEMENT 6
+#define PAYLOAD_TYPE_RESULT 7
 
 typedef uint8_t ProtocolVersion;
 #define PROTOCOL_VERSION_UNKNOWN 0
