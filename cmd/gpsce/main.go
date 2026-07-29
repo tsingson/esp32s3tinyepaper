@@ -7,22 +7,16 @@ import (
 	"log"
 	"net"
 	"time"
+
+	dp "github.com/tsingson/esp32s3tinyepaper/cmd/gpsce/dp"
+	fh "github.com/tsingson/esp32s3tinyepaper/cmd/gpsce/fh"
 )
 
 const (
 	frameMagic       = byte(0xB1)
-	payloadTypeDrone = byte(1)
-	frameHeaderSize  = 4
-	dronePayloadSize = 65
 	ioRetries        = 3
 	acceptRetries    = 3
 )
-
-type frameHeader struct {
-	Magic         byte
-	PayloadType   byte
-	PayloadLength uint16
-}
 
 func previewBytes(buf []byte, limit int) string {
 	if len(buf) <= limit {
@@ -31,25 +25,21 @@ func previewBytes(buf []byte, limit int) string {
 	return fmt.Sprintf("% x ...", buf[:limit])
 }
 
-func decodeFrameHeader(buf []byte) (frameHeader, error) {
-	if len(buf) != frameHeaderSize {
-		return frameHeader{}, fmt.Errorf("invalid header size %d", len(buf))
+func decodeFrameHeader(buf []byte) (fh.FrameHeader, error) {
+	if uint32(len(buf)) != fh.BYTES_LENGTH_FRAMEHEADER {
+		return fh.FrameHeader{}, fmt.Errorf("invalid header size %d", len(buf))
 	}
 
-	return frameHeader{
-		Magic:         buf[0],
-		PayloadType:   buf[1],
-		PayloadLength: uint16(buf[2]) | uint16(buf[3])<<8,
-	}, nil
+	h := fh.FrameHeader{}
+	h.Decode(buf)
+	if h.Magic != frameMagic {
+		return fh.FrameHeader{}, fmt.Errorf("bad magic %d", h.Magic)
+	}
+	return h, nil
 }
 
-func encodeFrameHeader(h frameHeader) []byte {
-	return []byte{
-		h.Magic,
-		h.PayloadType,
-		byte(h.PayloadLength),
-		byte(h.PayloadLength >> 8),
-	}
+func encodeFrameHeader(h fh.FrameHeader) []byte {
+	return h.Encode()
 }
 
 func readFull(conn net.Conn, buf []byte, timeout time.Duration) error {
@@ -91,7 +81,7 @@ func writeFull(conn net.Conn, buf []byte, timeout time.Duration) error {
 }
 
 func readFrame(conn net.Conn, timeout time.Duration) ([]byte, error) {
-	headerBuf := make([]byte, frameHeaderSize)
+	headerBuf := make([]byte, fh.BYTES_LENGTH_FRAMEHEADER)
 	if err := readFull(conn, headerBuf, timeout); err != nil {
 		return nil, fmt.Errorf("read header: %w", err)
 	}
@@ -103,12 +93,7 @@ func readFrame(conn net.Conn, timeout time.Duration) ([]byte, error) {
 	if header.Magic != frameMagic {
 		return nil, fmt.Errorf("bad magic %d", header.Magic)
 	}
-	if header.PayloadType != payloadTypeDrone {
-		return nil, fmt.Errorf("bad payload type %d", header.PayloadType)
-	}
-	if header.PayloadLength != dronePayloadSize {
-		return nil, fmt.Errorf("invalid payload length %d", header.PayloadLength)
-	}
+
 	log.Printf("rx header remote=%s magic=0x%02x type=%d len=%d", conn.RemoteAddr(), header.Magic, header.PayloadType, header.PayloadLength)
 
 	payload := make([]byte, int(header.PayloadLength))
@@ -117,7 +102,7 @@ func readFrame(conn net.Conn, timeout time.Duration) ([]byte, error) {
 	}
 	log.Printf("rx payload remote=%s bytes=%d preview=%s", conn.RemoteAddr(), len(payload), previewBytes(payload, 16))
 
-	load := new(Drone)
+	load := new(dp.Drone)
 	load.Decode(payload)
 	if load != nil {
 		log.Printf("drone: %s", load.String())
@@ -128,9 +113,9 @@ func readFrame(conn net.Conn, timeout time.Duration) ([]byte, error) {
 }
 
 func writeFrame(conn net.Conn, payload []byte, timeout time.Duration) error {
-	header := frameHeader{
+	header := fh.FrameHeader{
 		Magic:         frameMagic,
-		PayloadType:   payloadTypeDrone,
+		PayloadType:   fh.PAYLOAD_TYPE_DRONE,
 		PayloadLength: uint16(len(payload)),
 	}
 	log.Printf("tx header remote=%s magic=0x%02x type=%d len=%d", conn.RemoteAddr(), header.Magic, header.PayloadType, header.PayloadLength)

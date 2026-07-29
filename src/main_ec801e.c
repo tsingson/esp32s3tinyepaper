@@ -9,7 +9,7 @@
 
 #include "ec801e.h"
 #include "bitproto/drone_bp.h"
-#include "bitproto/frame_header_bp.h"
+#include "bitproto/frameheader_bp.h"
 
 #define GPSEC_SERVER_IP "142.54.180.58"
 #define GPSEC_SERVER_PORT 8061
@@ -134,7 +134,7 @@ static int connect_gpsec_socket(void)
 static int write_frame(int sock, const uint8_t *payload, size_t payload_len)
 {
 	struct FrameHeader hdr = {0};
-	uint8_t hdr_buf[BYTES_LENGTH_FRAME_HEADER] = {0};
+	uint8_t hdr_buf[BYTES_LENGTH_FRAMEHEADER] = {0};
 
 	if (payload_len > UINT16_MAX) {
 		return -EINVAL;
@@ -143,7 +143,7 @@ static int write_frame(int sock, const uint8_t *payload, size_t payload_len)
 	hdr.magic = FRAME_MAGIC;
 	hdr.payload_type = PAYLOAD_TYPE_DRONE;
 	hdr.payload_length = (uint16_t)payload_len;
-	if (EncodeFrameHeader(&hdr, (unsigned char *)hdr_buf) != BYTES_LENGTH_FRAME_HEADER) {
+	if (EncodeFrameHeader(&hdr, (unsigned char *)hdr_buf) != BYTES_LENGTH_FRAMEHEADER) {
 		return -EBADMSG;
 	}
 
@@ -156,14 +156,14 @@ static int write_frame(int sock, const uint8_t *payload, size_t payload_len)
 
 static int read_frame(int sock, uint8_t *payload, size_t payload_capacity, size_t *out_len)
 {
-	uint8_t hdr_buf[BYTES_LENGTH_FRAME_HEADER] = {0};
+	uint8_t hdr_buf[BYTES_LENGTH_FRAMEHEADER] = {0};
 	struct FrameHeader hdr = {0};
 
 	if (recv_all(sock, hdr_buf, sizeof(hdr_buf)) < 0) {
 		return -EIO;
 	}
 
-	if (DecodeFrameHeader(&hdr, (unsigned char *)hdr_buf) != BYTES_LENGTH_FRAME_HEADER) {
+	if (DecodeFrameHeader(&hdr, (unsigned char *)hdr_buf) != BYTES_LENGTH_FRAMEHEADER) {
 		return -EBADMSG;
 	}
 	if (hdr.magic != FRAME_MAGIC || hdr.payload_type != PAYLOAD_TYPE_DRONE) {

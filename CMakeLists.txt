@@ -8,5 +8,6 @@ add_subdirectory(drivers)
 target_sources(app PRIVATE
 	src/main_ec801e.c
 	src/bitproto/drone_bp.c
-	src/bitproto/frame_header_bp.c
+	src/bitproto/frameheader_bp.c
+		src/bitproto/bitproto.c
 )

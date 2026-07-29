@@ -63,9 +63,9 @@ message LandingGear {
 }
 
 message Position {
-    uint32 latitude = 1;
-    uint32 longitude = 2;
-    uint32 altitude = 3;
+    float latitude = 1;
+    float longitude = 2;
+    float altitude = 3;
 }
 
 // Pose in flight. https://en.wikipedia.org/wiki/Aircraft_principal_axes
