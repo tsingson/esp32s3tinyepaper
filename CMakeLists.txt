@@ -6,7 +6,8 @@ project(esp32_chip_info)
 add_subdirectory(drivers)
 
 target_sources(app PRIVATE
-	src/main_ec801e.c
+		src/main_ec801e_hid.c
+		src/usb.c
 	src/serv_addr.c
 	src/bitproto/bitproto.c
 	src/bitproto/drone_bp.c

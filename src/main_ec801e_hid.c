@@ -10,22 +10,20 @@
 #include <zephyr/logging/log.h>
 #include <zephyr/net/socket.h>
 #include <zephyr/storage/disk_access.h>
-#include <zephyr/usb/class/usbd_msc.h>
-#include <zephyr/usb/usbd_msg.h>
-#include <zephyr/usb/usbd.h>
+#include "usb.h"
 
 #include <ff.h>
 
 #include "bitproto/drone_bp.h"
 #include "bitproto/frameheader_bp.h"
-#include "ec801e.h"
 #include "serv_addr.h"
+#include "ec801e.h"
+#include "bitproto/drone_bp.h"
+#include "bitproto/socket_utls.h"
+#include "bitproto/protocol_utls.h"
 
 LOG_MODULE_REGISTER(main, LOG_LEVEL_INF);
 
-#define DISK_NAME "FLASH"
-#define MOUNT_POINT "/FLASH:"
-#define TARGET_FILE_PATH "/FLASH:/hosts.txt"
 
 #define HOSTS_BUF_SIZE 128
 #define DRONE_REPORT_INTERVAL_MS (4 * 60 * 1000)
@@ -33,6 +31,9 @@ LOG_MODULE_REGISTER(main, LOG_LEVEL_INF);
 #define GPSEC_IO_TIMEOUT_MS 30000
 #define GPSEC_RETRY_BACKOFF_MS 1000
 #define GPSEC_RETRIES 3
+
+//
+#include <zephyr/kernel.h>
 
 static const char* const default_host = "192.168.1.100:8080\n";
 static FATFS fat_fs;
@@ -42,75 +43,23 @@ static struct fs_mount_t mp = {
     .mnt_point = MOUNT_POINT,
 };
 
-USBD_DEVICE_DEFINE(my_flash_usbd,
-                   DEVICE_DT_GET(DT_NODELABEL(zephyr_udc0)),
-                   0x16c0,
-                   0x05e3);
-USBD_DESC_LANG_DEFINE(usb_lang);
-USBD_DESC_MANUFACTURER_DEFINE(usb_mfr, "Qinshen");
-USBD_DESC_PRODUCT_DEFINE(usb_product, "ESP32S3 Tiny MSC+TCP");
-USBD_DESC_CONFIG_DEFINE(usb_fs_cfg_desc, "FS Configuration");
-USBD_DESC_CONFIG_DEFINE(usb_hs_cfg_desc, "HS Configuration");
-USBD_CONFIGURATION_DEFINE(usb_fs_config, 0, 100, &usb_fs_cfg_desc);
-USBD_CONFIGURATION_DEFINE(usb_hs_config, 0, 100, &usb_hs_cfg_desc);
-USBD_DEFINE_MSC_LUN(flash, DISK_NAME, "Zephyr", "HostsDisk", "1.00");
-
-static const char* const usb_class_blocklist[] = {
-    "dfu_dfu",
-    NULL,
-};
-
 static char last_host_value[HOSTS_BUF_SIZE];
 static bool host_value_valid;
-static bool usb_host_connected;
-static bool hosts_refresh_pending;
 static uint32_t g_seq;
 
-void usbd_msc_medium_event(const char* disk, bool medium_loaded)
+//  消费者/接收方
+void consumer_thread(void* p1, void* p2, void* p3)
 {
-    if (disk == NULL || strcmp(disk, DISK_NAME) != 0)
+    while (k_sem_take(&sync_sem, K_FOREVER) == 0)
     {
-        return;
-    }
-
-    if (!medium_loaded)
-    {
-        hosts_refresh_pending = true;
-        printk("[HID] host safely removed disk, refresh pending\n");
-    }
-    else
-    {
-        printk("[HID] host loaded disk\n");
+        printk("Consumer: Processed the event!\n");
     }
 }
 
-static void usb_msg_cb(struct usbd_context* const ctx,
-                       const struct usbd_msg* const msg)
-{
-    (void)ctx;
+#define STACK_SIZE 1024
+#define PRIORITY 7
 
-    if (msg == NULL)
-    {
-        return;
-    }
-
-    switch (msg->type)
-    {
-    case USBD_MSG_VBUS_READY:
-    case USBD_MSG_CONFIGURATION:
-    case USBD_MSG_RESUME:
-        usb_host_connected = true;
-        break;
-    case USBD_MSG_SUSPEND:
-    case USBD_MSG_RESET:
-        break;
-    case USBD_MSG_VBUS_REMOVED:
-        usb_host_connected = false;
-        break;
-    default:
-        break;
-    }
-}
+K_THREAD_DEFINE(cons_id, STACK_SIZE, consumer_thread, NULL, NULL, NULL, PRIORITY, 0, 0 );
 
 static void trim_line_end(char* s)
 {
@@ -241,84 +190,7 @@ static bool hosts_addr_is_valid(const char* addr)
     return parse_host_port(addr, host, sizeof(host), &port) == 0;
 }
 
-static void usb_fix_code_triple(const enum usbd_speed speed)
-{
-    if (IS_ENABLED(CONFIG_USBD_CDC_ACM_CLASS))
-    {
-        (void)usbd_device_set_code_triple(&my_flash_usbd, speed,
-                                          USB_BCC_MISCELLANEOUS, 0x02, 0x01);
-    }
-    else
-    {
-        (void)usbd_device_set_code_triple(&my_flash_usbd, speed, 0, 0, 0);
-    }
-}
-
-static int setup_usb_msc(void)
-{
-    int ret;
-
-    ret = usbd_add_descriptor(&my_flash_usbd, &usb_lang);
-    if (ret < 0)
-    {
-        return ret;
-    }
-    ret = usbd_add_descriptor(&my_flash_usbd, &usb_mfr);
-    if (ret < 0)
-    {
-        return ret;
-    }
-    ret = usbd_add_descriptor(&my_flash_usbd, &usb_product);
-    if (ret < 0)
-    {
-        return ret;
-    }
-
-    if (USBD_SUPPORTS_HIGH_SPEED && usbd_caps_speed(&my_flash_usbd)
-        ==
-        USBD_SPEED_HS
-    )
-    {
-        ret = usbd_add_configuration(&my_flash_usbd, USBD_SPEED_HS, &usb_hs_config);
-        if (ret < 0)
-        {
-            return ret;
-        }
-        ret = usbd_register_all_classes(&my_flash_usbd, USBD_SPEED_HS, 1,
-                                        usb_class_blocklist);
-        if (ret < 0)
-        {
-            return ret;
-        }
-        usb_fix_code_triple(USBD_SPEED_HS);
-    }
-
-    ret = usbd_add_configuration(&my_flash_usbd, USBD_SPEED_FS, &usb_fs_config);
-    if (ret < 0)
-    {
-        return ret;
-    }
-    ret = usbd_register_all_classes(&my_flash_usbd, USBD_SPEED_FS, 1, usb_class_blocklist);
-    if (ret < 0)
-    {
-        return ret;
-    }
-    usb_fix_code_triple(USBD_SPEED_FS);
-
-    ret = usbd_init(&my_flash_usbd);
-    if (ret < 0)
-    {
-        return ret;
-    }
-
-    ret = usbd_msg_register_cb(&my_flash_usbd, usb_msg_cb);
-    if (ret < 0)
-    {
-        return ret;
-    }
-
-    return usbd_enable(&my_flash_usbd);
-}
+/* USB setup and helpers moved to src/usb.c */
 
 static int setup_flash_disk(void)
 {
@@ -467,61 +339,7 @@ static void fill_drone(struct Drone* drone, uint32_t seq)
     drone->landing_gear.status = LANDING_GEAR_STATUS_FOLDED;
 }
 
-static int send_all(int sock, const uint8_t* buf, size_t len)
-{
-    int64_t deadline = k_uptime_get() + GPSEC_IO_TIMEOUT_MS;
-
-    while (len > 0U)
-    {
-        ssize_t n = zsock_send(sock, buf, len, 0);
-        if (n < 0)
-        {
-            if (errno == EAGAIN && k_uptime_get() < deadline)
-            {
-                k_sleep(K_MSEC(100));
-                continue;
-            }
-            return -EIO;
-        }
-        if (n == 0)
-        {
-            return -EIO;
-        }
-        buf += n;
-        len -= (size_t)n;
-    }
-
-    return 0;
-}
-
-static int recv_all(int sock, uint8_t* buf, size_t len)
-{
-    int64_t deadline = k_uptime_get() + GPSEC_IO_TIMEOUT_MS;
-
-    while (len > 0U)
-    {
-        ssize_t n = zsock_recv(sock, buf, len, 0);
-        if (n < 0)
-        {
-            if (errno == EAGAIN && k_uptime_get() < deadline)
-            {
-                k_sleep(K_MSEC(100));
-                continue;
-            }
-            return -EIO;
-        }
-        if (n == 0)
-        {
-            return -EIO;
-        }
-        buf += n;
-        len -= (size_t)n;
-    }
-
-    return 0;
-}
-
-static int connect_active_socket(void)
+int connect_active_socket(void)
 {
     const char* serv_addr = get_serv_addr();
     char host[80];
@@ -578,65 +396,7 @@ static int connect_active_socket(void)
     return sock;
 }
 
-static int write_frame(int sock, const uint8_t* payload, size_t payload_len)
-{
-    struct FrameHeader hdr = {0};
-    uint8_t hdr_buf[BYTES_LENGTH_FRAMEHEADER] = {0};
-
-    if (payload_len > UINT16_MAX)
-    {
-        return -EINVAL;
-    }
-
-    hdr.magic = FRAME_MAGIC;
-    hdr.payload_type = PAYLOAD_TYPE_DRONE;
-    hdr.payload_length = (uint16_t)payload_len;
-    if (EncodeFrameHeader(&hdr, (unsigned char*)hdr_buf) != BYTES_LENGTH_FRAMEHEADER)
-    {
-        return -EBADMSG;
-    }
-
-    if (send_all(sock, hdr_buf, sizeof(hdr_buf)) < 0)
-    {
-        return -EIO;
-    }
-
-    return send_all(sock, payload, payload_len);
-}
-
-static int read_frame(int sock, uint8_t* payload, size_t payload_capacity, size_t* out_len)
-{
-    uint8_t hdr_buf[BYTES_LENGTH_FRAMEHEADER] = {0};
-    struct FrameHeader hdr = {0};
-
-    if (recv_all(sock, hdr_buf, sizeof(hdr_buf)) < 0)
-    {
-        return -EIO;
-    }
-
-    if (DecodeFrameHeader(&hdr, (unsigned char*)hdr_buf) != BYTES_LENGTH_FRAMEHEADER)
-    {
-        return -EBADMSG;
-    }
-    if (hdr.magic != FRAME_MAGIC || hdr.payload_type != PAYLOAD_TYPE_DRONE)
-    {
-        return -EBADMSG;
-    }
-    if (hdr.payload_length > payload_capacity)
-    {
-        return -EMSGSIZE;
-    }
-
-    if (recv_all(sock, payload, hdr.payload_length) < 0)
-    {
-        return -EIO;
-    }
-
-    *out_len = hdr.payload_length;
-    return 0;
-}
-
-static int run_roundtrip_once(void)
+int run_roundtrip_once(void)
 {
     int sock;
     int ret;
@@ -753,6 +513,12 @@ int main(void)
 
     next_report_at = k_uptime_get();
 
+    printk("Starting the worker thread manually...\n");
+
+    // my_thread_id 是通过 K_THREAD_DEFINE 定义的线程 ID
+    // k_thread_start(my_thread_id);
+
+
     while (true)
     {
         int64_t now = k_uptime_get();
@@ -767,13 +533,13 @@ int main(void)
             ret = -EIO;
             for (int attempt = 1; attempt <= GPSEC_RETRIES; attempt++)
             {
-                ret = run_roundtrip_once();
-                if (ret == 0)
-                {
-                    break;
-                }
-                printk("[TCP] attempt %d/%d failed: %d (active=%s)\n",
-                       attempt, GPSEC_RETRIES, ret, get_serv_addr());
+                // ret = run_roundtrip_once();
+                // if (ret == 0)
+                // {
+                //     break;
+                // }
+                // printk("[TCP] attempt %d/%d failed: %d (active=%s)\n",
+                //        attempt, GPSEC_RETRIES, ret, get_serv_addr());
                 if (attempt < GPSEC_RETRIES)
                 {
                     k_sleep(K_MSEC(GPSEC_RETRY_BACKOFF_MS));
