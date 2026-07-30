@@ -2,388 +2,467 @@
 #include "bitproto.h"
 #include "drone_bp.h"
 
-void BpNativeProcessArrayTernaryInt32(void *data, struct BpProcessorContext *ctx);
-void BpNativeJsonFormatArrayTernaryInt32(void *data, struct BpJsonFormatContext *ctx);
-void BpNativeProcessArrayDrone4(void *data, struct BpProcessorContext *ctx);
-void BpNativeJsonFormatArrayDrone4(void *data, struct BpJsonFormatContext *ctx);
-void BpNativeProcessTimestamp(void *data, struct BpProcessorContext *ctx);
-void BpNativeJsonFormatTimestamp(void *data, struct BpJsonFormatContext *ctx);
-void BpNativeProcessTernaryInt32(void *data, struct BpProcessorContext *ctx);
-void BpNativeJsonFormatTernaryInt32(void *data, struct BpJsonFormatContext *ctx);
-void BpNativeProcessPropeller(void *data, struct BpProcessorContext *ctx);
-void BpNativeJsonFormatPropeller(void *data, struct BpJsonFormatContext *ctx);
-void BpNativeProcessPower(void *data, struct BpProcessorContext *ctx);
-void BpNativeJsonFormatPower(void *data, struct BpJsonFormatContext *ctx);
-void BpNativeProcessNetwork(void *data, struct BpProcessorContext *ctx);
-void BpNativeJsonFormatNetwork(void *data, struct BpJsonFormatContext *ctx);
-void BpNativeProcessLandingGear(void *data, struct BpProcessorContext *ctx);
-void BpNativeJsonFormatLandingGear(void *data, struct BpJsonFormatContext *ctx);
-void BpNativeProcessPosition(void *data, struct BpProcessorContext *ctx);
-void BpNativeJsonFormatPosition(void *data, struct BpJsonFormatContext *ctx);
-void BpNativeProcessPose(void *data, struct BpProcessorContext *ctx);
-void BpNativeJsonFormatPose(void *data, struct BpJsonFormatContext *ctx);
-void BpNativeProcessFlight(void *data, struct BpProcessorContext *ctx);
-void BpNativeJsonFormatFlight(void *data, struct BpJsonFormatContext *ctx);
-void BpNativeProcessDrone(void *data, struct BpProcessorContext *ctx);
-void BpNativeJsonFormatDrone(void *data, struct BpJsonFormatContext *ctx);
+void BpNativeProcessArrayTernaryInt32(void* data, struct BpProcessorContext* ctx);
+void BpNativeJsonFormatArrayTernaryInt32(void* data, struct BpJsonFormatContext* ctx);
+void BpNativeProcessArrayDrone4(void* data, struct BpProcessorContext* ctx);
+void BpNativeJsonFormatArrayDrone4(void* data, struct BpJsonFormatContext* ctx);
+void BpNativeProcessTimestamp(void* data, struct BpProcessorContext* ctx);
+void BpNativeJsonFormatTimestamp(void* data, struct BpJsonFormatContext* ctx);
+void BpNativeProcessTernaryInt32(void* data, struct BpProcessorContext* ctx);
+void BpNativeJsonFormatTernaryInt32(void* data, struct BpJsonFormatContext* ctx);
+void BpNativeProcessPropeller(void* data, struct BpProcessorContext* ctx);
+void BpNativeJsonFormatPropeller(void* data, struct BpJsonFormatContext* ctx);
+void BpNativeProcessPower(void* data, struct BpProcessorContext* ctx);
+void BpNativeJsonFormatPower(void* data, struct BpJsonFormatContext* ctx);
+void BpNativeProcessNetwork(void* data, struct BpProcessorContext* ctx);
+void BpNativeJsonFormatNetwork(void* data, struct BpJsonFormatContext* ctx);
+void BpNativeProcessLandingGear(void* data, struct BpProcessorContext* ctx);
+void BpNativeJsonFormatLandingGear(void* data, struct BpJsonFormatContext* ctx);
+void BpNativeProcessPosition(void* data, struct BpProcessorContext* ctx);
+void BpNativeJsonFormatPosition(void* data, struct BpJsonFormatContext* ctx);
+void BpNativeProcessPose(void* data, struct BpProcessorContext* ctx);
+void BpNativeJsonFormatPose(void* data, struct BpJsonFormatContext* ctx);
+void BpNativeProcessFlight(void* data, struct BpProcessorContext* ctx);
+void BpNativeJsonFormatFlight(void* data, struct BpJsonFormatContext* ctx);
+void BpNativeProcessDrone(void* data, struct BpProcessorContext* ctx);
+void BpNativeJsonFormatDrone(void* data, struct BpJsonFormatContext* ctx);
 
-void BpNativeProcessArrayTernaryInt32(void *data, struct BpProcessorContext *ctx) {
+void BpNativeProcessArrayTernaryInt32(void* data, struct BpProcessorContext* ctx)
+{
     struct BpArrayDescriptor descriptor = BpArrayDescriptor(false, 3, BpInt(32, sizeof(int32_t)));
     BpEndecodeArray(&descriptor, ctx, data);
 }
 
-void BpNativeJsonFormatArrayTernaryInt32(void *data, struct BpJsonFormatContext *ctx) {
+void BpNativeJsonFormatArrayTernaryInt32(void* data, struct BpJsonFormatContext* ctx)
+{
     struct BpArrayDescriptor descriptor = BpArrayDescriptor(false, 3, BpInt(32, sizeof(int32_t)));
     BpJsonFormatArray(&descriptor, ctx, data);
 }
 
-void BpNativeProcessArrayDrone4(void *data, struct BpProcessorContext *ctx) {
-    struct BpArrayDescriptor descriptor = BpArrayDescriptor(false, 4, BpMessage(12, sizeof(struct Propeller), BpNativeProcessPropeller, BpNativeJsonFormatPropeller));
+void BpNativeProcessArrayDrone4(void* data, struct BpProcessorContext* ctx)
+{
+    struct BpArrayDescriptor descriptor = BpArrayDescriptor(
+        false, 4, BpMessage(12, sizeof(struct Propeller), BpNativeProcessPropeller, BpNativeJsonFormatPropeller));
     BpEndecodeArray(&descriptor, ctx, data);
 }
 
-void BpNativeJsonFormatArrayDrone4(void *data, struct BpJsonFormatContext *ctx) {
-    struct BpArrayDescriptor descriptor = BpArrayDescriptor(false, 4, BpMessage(12, sizeof(struct Propeller), BpNativeProcessPropeller, BpNativeJsonFormatPropeller));
+void BpNativeJsonFormatArrayDrone4(void* data, struct BpJsonFormatContext* ctx)
+{
+    struct BpArrayDescriptor descriptor = BpArrayDescriptor(
+        false, 4, BpMessage(12, sizeof(struct Propeller), BpNativeProcessPropeller, BpNativeJsonFormatPropeller));
     BpJsonFormatArray(&descriptor, ctx, data);
 }
 
-void BpNativeProcessTimestamp(void *data, struct BpProcessorContext *ctx) {
+void BpNativeProcessTimestamp(void* data, struct BpProcessorContext* ctx)
+{
     struct BpAliasDescriptor descriptor = BpAliasDescriptor(BpInt(64, sizeof(int64_t)));
     BpEndecodeAlias(&descriptor, ctx, data);
 }
 
-void BpNativeJsonFormatTimestamp(void *data, struct BpJsonFormatContext *ctx) {
+void BpNativeJsonFormatTimestamp(void* data, struct BpJsonFormatContext* ctx)
+{
     struct BpAliasDescriptor descriptor = BpAliasDescriptor(BpInt(64, sizeof(int64_t)));
     BpJsonFormatAlias(&descriptor, ctx, data);
 }
 
-void BpNativeProcessTernaryInt32(void *data, struct BpProcessorContext *ctx) {
-    struct BpAliasDescriptor descriptor = BpAliasDescriptor(BpArray(96, 3 * sizeof(int32_t), BpNativeProcessArrayTernaryInt32, BpNativeJsonFormatArrayTernaryInt32));
+void BpNativeProcessTernaryInt32(void* data, struct BpProcessorContext* ctx)
+{
+    struct BpAliasDescriptor descriptor = BpAliasDescriptor(
+        BpArray(96, 3 * sizeof(int32_t), BpNativeProcessArrayTernaryInt32, BpNativeJsonFormatArrayTernaryInt32));
     BpEndecodeAlias(&descriptor, ctx, data);
 }
 
-void BpNativeJsonFormatTernaryInt32(void *data, struct BpJsonFormatContext *ctx) {
+void BpNativeJsonFormatTernaryInt32(void* data, struct BpJsonFormatContext* ctx)
+{
     BpNativeJsonFormatArrayTernaryInt32(data, ctx);
 }
 
-void BpFieldDescriptorsInitPropeller(struct Propeller *m, struct BpMessageFieldDescriptor *fds) {
-    fds[0] = BpMessageFieldDescriptor((void *)&(m->id), BpUint(8, sizeof(uint8_t)), "id");
-    fds[1] = BpMessageFieldDescriptor((void *)&(m->status), BpEnum(2, sizeof(PropellerStatus)), "status");
-    fds[2] = BpMessageFieldDescriptor((void *)&(m->direction), BpEnum(2, sizeof(RotatingDirection)), "direction");
+void BpFieldDescriptorsInitPropeller(struct Propeller* m, struct BpMessageFieldDescriptor* fds)
+{
+    fds[0] = BpMessageFieldDescriptor((void*)&(m->id), BpUint(8, sizeof(uint8_t)), "id");
+    fds[1] = BpMessageFieldDescriptor((void*)&(m->status), BpEnum(2, sizeof(PropellerStatus)), "status");
+    fds[2] = BpMessageFieldDescriptor((void*)&(m->direction), BpEnum(2, sizeof(RotatingDirection)), "direction");
 }
 
-void BpNativeProcessPropeller(void *data, struct BpProcessorContext *ctx) {
-    struct Propeller *m = (struct Propeller *)(data);
+void BpNativeProcessPropeller(void* data, struct BpProcessorContext* ctx)
+{
+    struct Propeller* m = (struct Propeller*)(data);
     struct BpMessageFieldDescriptor field_descriptors[3];
     BpFieldDescriptorsInitPropeller(m, field_descriptors);
     struct BpMessageDescriptor descriptor = BpMessageDescriptor(false, 3, 12, field_descriptors);
     BpEndecodeMessage(&descriptor, ctx, data);
 }
 
-void BpFieldDescriptorsInitPower(struct Power *m, struct BpMessageFieldDescriptor *fds) {
-    fds[0] = BpMessageFieldDescriptor((void *)&(m->battery), BpUint(8, sizeof(uint8_t)), "battery");
-    fds[1] = BpMessageFieldDescriptor((void *)&(m->status), BpEnum(2, sizeof(PowerStatus)), "status");
-    fds[2] = BpMessageFieldDescriptor((void *)&(m->is_charging), BpBool(), "is_charging");
+void BpFieldDescriptorsInitPower(struct Power* m, struct BpMessageFieldDescriptor* fds)
+{
+    fds[0] = BpMessageFieldDescriptor((void*)&(m->battery), BpUint(8, sizeof(uint8_t)), "battery");
+    fds[1] = BpMessageFieldDescriptor((void*)&(m->status), BpEnum(2, sizeof(PowerStatus)), "status");
+    fds[2] = BpMessageFieldDescriptor((void*)&(m->is_charging), BpBool(), "is_charging");
 }
 
-void BpNativeProcessPower(void *data, struct BpProcessorContext *ctx) {
-    struct Power *m = (struct Power *)(data);
+void BpNativeProcessPower(void* data, struct BpProcessorContext* ctx)
+{
+    struct Power* m = (struct Power*)(data);
     struct BpMessageFieldDescriptor field_descriptors[3];
     BpFieldDescriptorsInitPower(m, field_descriptors);
     struct BpMessageDescriptor descriptor = BpMessageDescriptor(false, 3, 11, field_descriptors);
     BpEndecodeMessage(&descriptor, ctx, data);
 }
 
-void BpFieldDescriptorsInitNetwork(struct Network *m, struct BpMessageFieldDescriptor *fds) {
-    fds[0] = BpMessageFieldDescriptor((void *)&(m->signal), BpUint(4, sizeof(uint8_t)), "signal");
-    fds[1] = BpMessageFieldDescriptor((void *)&(m->heartbeat_at), BpAlias(64, sizeof(Timestamp), BpNativeProcessTimestamp, BpNativeJsonFormatTimestamp, BP_TYPE_INT), "heartbeat_at");
+void BpFieldDescriptorsInitNetwork(struct Network* m, struct BpMessageFieldDescriptor* fds)
+{
+    fds[0] = BpMessageFieldDescriptor((void*)&(m->signal), BpUint(4, sizeof(uint8_t)), "signal");
+    fds[1] = BpMessageFieldDescriptor((void*)&(m->heartbeat_at),
+                                      BpAlias(64, sizeof(Timestamp), BpNativeProcessTimestamp,
+                                              BpNativeJsonFormatTimestamp, BP_TYPE_INT), "heartbeat_at");
 }
 
-void BpNativeProcessNetwork(void *data, struct BpProcessorContext *ctx) {
-    struct Network *m = (struct Network *)(data);
+void BpNativeProcessNetwork(void* data, struct BpProcessorContext* ctx)
+{
+    struct Network* m = (struct Network*)(data);
     struct BpMessageFieldDescriptor field_descriptors[2];
     BpFieldDescriptorsInitNetwork(m, field_descriptors);
     struct BpMessageDescriptor descriptor = BpMessageDescriptor(false, 2, 68, field_descriptors);
     BpEndecodeMessage(&descriptor, ctx, data);
 }
 
-void BpFieldDescriptorsInitLandingGear(struct LandingGear *m, struct BpMessageFieldDescriptor *fds) {
-    fds[0] = BpMessageFieldDescriptor((void *)&(m->status), BpEnum(2, sizeof(LandingGearStatus)), "status");
+void BpFieldDescriptorsInitLandingGear(struct LandingGear* m, struct BpMessageFieldDescriptor* fds)
+{
+    fds[0] = BpMessageFieldDescriptor((void*)&(m->status), BpEnum(2, sizeof(LandingGearStatus)), "status");
 }
 
-void BpNativeProcessLandingGear(void *data, struct BpProcessorContext *ctx) {
-    struct LandingGear *m = (struct LandingGear *)(data);
+void BpNativeProcessLandingGear(void* data, struct BpProcessorContext* ctx)
+{
+    struct LandingGear* m = (struct LandingGear*)(data);
     struct BpMessageFieldDescriptor field_descriptors[1];
     BpFieldDescriptorsInitLandingGear(m, field_descriptors);
     struct BpMessageDescriptor descriptor = BpMessageDescriptor(false, 1, 2, field_descriptors);
     BpEndecodeMessage(&descriptor, ctx, data);
 }
 
-void BpFieldDescriptorsInitPosition(struct Position *m, struct BpMessageFieldDescriptor *fds) {
-    fds[0] = BpMessageFieldDescriptor((void *)&(m->latitude), BpInt(32, sizeof(int32_t)), "latitude");
-    fds[1] = BpMessageFieldDescriptor((void *)&(m->longitude), BpInt(32, sizeof(int32_t)), "longitude");
-    fds[2] = BpMessageFieldDescriptor((void *)&(m->altitude), BpInt(32, sizeof(int32_t)), "altitude");
+void BpFieldDescriptorsInitPosition(struct Position* m, struct BpMessageFieldDescriptor* fds)
+{
+    fds[0] = BpMessageFieldDescriptor((void*)&(m->latitude), BpInt(32, sizeof(int32_t)), "latitude");
+    fds[1] = BpMessageFieldDescriptor((void*)&(m->longitude), BpInt(32, sizeof(int32_t)), "longitude");
+    fds[2] = BpMessageFieldDescriptor((void*)&(m->altitude), BpInt(32, sizeof(int32_t)), "altitude");
 }
 
-void BpNativeProcessPosition(void *data, struct BpProcessorContext *ctx) {
-    struct Position *m = (struct Position *)(data);
+void BpNativeProcessPosition(void* data, struct BpProcessorContext* ctx)
+{
+    struct Position* m = (struct Position*)(data);
     struct BpMessageFieldDescriptor field_descriptors[3];
     BpFieldDescriptorsInitPosition(m, field_descriptors);
     struct BpMessageDescriptor descriptor = BpMessageDescriptor(false, 3, 96, field_descriptors);
     BpEndecodeMessage(&descriptor, ctx, data);
 }
 
-void BpFieldDescriptorsInitPose(struct Pose *m, struct BpMessageFieldDescriptor *fds) {
-    fds[0] = BpMessageFieldDescriptor((void *)&(m->yaw), BpInt(32, sizeof(int32_t)), "yaw");
-    fds[1] = BpMessageFieldDescriptor((void *)&(m->pitch), BpInt(32, sizeof(int32_t)), "pitch");
-    fds[2] = BpMessageFieldDescriptor((void *)&(m->roll), BpInt(32, sizeof(int32_t)), "roll");
+void BpFieldDescriptorsInitPose(struct Pose* m, struct BpMessageFieldDescriptor* fds)
+{
+    fds[0] = BpMessageFieldDescriptor((void*)&(m->yaw), BpInt(32, sizeof(int32_t)), "yaw");
+    fds[1] = BpMessageFieldDescriptor((void*)&(m->pitch), BpInt(32, sizeof(int32_t)), "pitch");
+    fds[2] = BpMessageFieldDescriptor((void*)&(m->roll), BpInt(32, sizeof(int32_t)), "roll");
 }
 
-void BpNativeProcessPose(void *data, struct BpProcessorContext *ctx) {
-    struct Pose *m = (struct Pose *)(data);
+void BpNativeProcessPose(void* data, struct BpProcessorContext* ctx)
+{
+    struct Pose* m = (struct Pose*)(data);
     struct BpMessageFieldDescriptor field_descriptors[3];
     BpFieldDescriptorsInitPose(m, field_descriptors);
     struct BpMessageDescriptor descriptor = BpMessageDescriptor(false, 3, 96, field_descriptors);
     BpEndecodeMessage(&descriptor, ctx, data);
 }
 
-void BpFieldDescriptorsInitFlight(struct Flight *m, struct BpMessageFieldDescriptor *fds) {
-    fds[0] = BpMessageFieldDescriptor((void *)&(m->pose), BpMessage(96, sizeof(struct Pose), BpNativeProcessPose, BpNativeJsonFormatPose), "pose");
-    fds[1] = BpMessageFieldDescriptor((void *)&(m->velocity), BpAlias(96, sizeof(TernaryInt32), BpNativeProcessTernaryInt32, BpNativeJsonFormatTernaryInt32, BP_TYPE_ARRAY), "velocity");
-    fds[2] = BpMessageFieldDescriptor((void *)&(m->acceleration), BpAlias(96, sizeof(TernaryInt32), BpNativeProcessTernaryInt32, BpNativeJsonFormatTernaryInt32, BP_TYPE_ARRAY), "acceleration");
+void BpFieldDescriptorsInitFlight(struct Flight* m, struct BpMessageFieldDescriptor* fds)
+{
+    fds[0] = BpMessageFieldDescriptor((void*)&(m->pose),
+                                      BpMessage(96, sizeof(struct Pose), BpNativeProcessPose, BpNativeJsonFormatPose),
+                                      "pose");
+    fds[1] = BpMessageFieldDescriptor((void*)&(m->velocity),
+                                      BpAlias(96, sizeof(TernaryInt32), BpNativeProcessTernaryInt32,
+                                              BpNativeJsonFormatTernaryInt32, BP_TYPE_ARRAY), "velocity");
+    fds[2] = BpMessageFieldDescriptor((void*)&(m->acceleration),
+                                      BpAlias(96, sizeof(TernaryInt32), BpNativeProcessTernaryInt32,
+                                              BpNativeJsonFormatTernaryInt32, BP_TYPE_ARRAY), "acceleration");
 }
 
-void BpNativeProcessFlight(void *data, struct BpProcessorContext *ctx) {
-    struct Flight *m = (struct Flight *)(data);
+void BpNativeProcessFlight(void* data, struct BpProcessorContext* ctx)
+{
+    struct Flight* m = (struct Flight*)(data);
     struct BpMessageFieldDescriptor field_descriptors[3];
     BpFieldDescriptorsInitFlight(m, field_descriptors);
     struct BpMessageDescriptor descriptor = BpMessageDescriptor(false, 3, 288, field_descriptors);
     BpEndecodeMessage(&descriptor, ctx, data);
 }
 
-void BpFieldDescriptorsInitDrone(struct Drone *m, struct BpMessageFieldDescriptor *fds) {
-    fds[0] = BpMessageFieldDescriptor((void *)&(m->status), BpEnum(3, sizeof(DroneStatus)), "status");
-    fds[1] = BpMessageFieldDescriptor((void *)&(m->position), BpMessage(96, sizeof(struct Position), BpNativeProcessPosition, BpNativeJsonFormatPosition), "position");
-    fds[2] = BpMessageFieldDescriptor((void *)&(m->flight), BpMessage(288, sizeof(struct Flight), BpNativeProcessFlight, BpNativeJsonFormatFlight), "flight");
-    fds[3] = BpMessageFieldDescriptor((void *)&(m->propellers), BpArray(48, 4 * sizeof(struct Propeller), BpNativeProcessArrayDrone4, BpNativeJsonFormatArrayDrone4), "propellers");
-    fds[4] = BpMessageFieldDescriptor((void *)&(m->power), BpMessage(11, sizeof(struct Power), BpNativeProcessPower, BpNativeJsonFormatPower), "power");
-    fds[5] = BpMessageFieldDescriptor((void *)&(m->network), BpMessage(68, sizeof(struct Network), BpNativeProcessNetwork, BpNativeJsonFormatNetwork), "network");
-    fds[6] = BpMessageFieldDescriptor((void *)&(m->landing_gear), BpMessage(2, sizeof(struct LandingGear), BpNativeProcessLandingGear, BpNativeJsonFormatLandingGear), "landing_gear");
+void BpFieldDescriptorsInitDrone(struct Drone* m, struct BpMessageFieldDescriptor* fds)
+{
+    fds[0] = BpMessageFieldDescriptor((void*)&(m->status), BpEnum(3, sizeof(DroneStatus)), "status");
+    fds[1] = BpMessageFieldDescriptor((void*)&(m->position),
+                                      BpMessage(96, sizeof(struct Position), BpNativeProcessPosition,
+                                                BpNativeJsonFormatPosition), "position");
+    fds[2] = BpMessageFieldDescriptor((void*)&(m->flight),
+                                      BpMessage(288, sizeof(struct Flight), BpNativeProcessFlight,
+                                                BpNativeJsonFormatFlight), "flight");
+    fds[3] = BpMessageFieldDescriptor((void*)&(m->propellers),
+                                      BpArray(48, 4 * sizeof(struct Propeller), BpNativeProcessArrayDrone4,
+                                              BpNativeJsonFormatArrayDrone4), "propellers");
+    fds[4] = BpMessageFieldDescriptor((void*)&(m->power),
+                                      BpMessage(11, sizeof(struct Power), BpNativeProcessPower,
+                                                BpNativeJsonFormatPower), "power");
+    fds[5] = BpMessageFieldDescriptor((void*)&(m->network),
+                                      BpMessage(68, sizeof(struct Network), BpNativeProcessNetwork,
+                                                BpNativeJsonFormatNetwork), "network");
+    fds[6] = BpMessageFieldDescriptor((void*)&(m->landing_gear),
+                                      BpMessage(2, sizeof(struct LandingGear), BpNativeProcessLandingGear,
+                                                BpNativeJsonFormatLandingGear), "landing_gear");
 }
 
-void BpNativeProcessDrone(void *data, struct BpProcessorContext *ctx) {
-    struct Drone *m = (struct Drone *)(data);
+void BpNativeProcessDrone(void* data, struct BpProcessorContext* ctx)
+{
+    struct Drone* m = (struct Drone*)(data);
     struct BpMessageFieldDescriptor field_descriptors[7];
     BpFieldDescriptorsInitDrone(m, field_descriptors);
     struct BpMessageDescriptor descriptor = BpMessageDescriptor(false, 7, 516, field_descriptors);
     BpEndecodeMessage(&descriptor, ctx, data);
 }
 
-void BpNativeJsonFormatPropeller(void *data, struct BpJsonFormatContext *ctx) {
-    struct Propeller *m = (struct Propeller *)(data);
+void BpNativeJsonFormatPropeller(void* data, struct BpJsonFormatContext* ctx)
+{
+    struct Propeller* m = (struct Propeller*)(data);
     struct BpMessageFieldDescriptor field_descriptors[3];
     BpFieldDescriptorsInitPropeller(m, field_descriptors);
     struct BpMessageDescriptor descriptor = BpMessageDescriptor(false, 3, 12, field_descriptors);
     BpJsonFormatMessage(&descriptor, ctx, data);
 }
 
-void BpNativeJsonFormatPower(void *data, struct BpJsonFormatContext *ctx) {
-    struct Power *m = (struct Power *)(data);
+void BpNativeJsonFormatPower(void* data, struct BpJsonFormatContext* ctx)
+{
+    struct Power* m = (struct Power*)(data);
     struct BpMessageFieldDescriptor field_descriptors[3];
     BpFieldDescriptorsInitPower(m, field_descriptors);
     struct BpMessageDescriptor descriptor = BpMessageDescriptor(false, 3, 11, field_descriptors);
     BpJsonFormatMessage(&descriptor, ctx, data);
 }
 
-void BpNativeJsonFormatNetwork(void *data, struct BpJsonFormatContext *ctx) {
-    struct Network *m = (struct Network *)(data);
+void BpNativeJsonFormatNetwork(void* data, struct BpJsonFormatContext* ctx)
+{
+    struct Network* m = (struct Network*)(data);
     struct BpMessageFieldDescriptor field_descriptors[2];
     BpFieldDescriptorsInitNetwork(m, field_descriptors);
     struct BpMessageDescriptor descriptor = BpMessageDescriptor(false, 2, 68, field_descriptors);
     BpJsonFormatMessage(&descriptor, ctx, data);
 }
 
-void BpNativeJsonFormatLandingGear(void *data, struct BpJsonFormatContext *ctx) {
-    struct LandingGear *m = (struct LandingGear *)(data);
+void BpNativeJsonFormatLandingGear(void* data, struct BpJsonFormatContext* ctx)
+{
+    struct LandingGear* m = (struct LandingGear*)(data);
     struct BpMessageFieldDescriptor field_descriptors[1];
     BpFieldDescriptorsInitLandingGear(m, field_descriptors);
     struct BpMessageDescriptor descriptor = BpMessageDescriptor(false, 1, 2, field_descriptors);
     BpJsonFormatMessage(&descriptor, ctx, data);
 }
 
-void BpNativeJsonFormatPosition(void *data, struct BpJsonFormatContext *ctx) {
-    struct Position *m = (struct Position *)(data);
+void BpNativeJsonFormatPosition(void* data, struct BpJsonFormatContext* ctx)
+{
+    struct Position* m = (struct Position*)(data);
     struct BpMessageFieldDescriptor field_descriptors[3];
     BpFieldDescriptorsInitPosition(m, field_descriptors);
     struct BpMessageDescriptor descriptor = BpMessageDescriptor(false, 3, 96, field_descriptors);
     BpJsonFormatMessage(&descriptor, ctx, data);
 }
 
-void BpNativeJsonFormatPose(void *data, struct BpJsonFormatContext *ctx) {
-    struct Pose *m = (struct Pose *)(data);
+void BpNativeJsonFormatPose(void* data, struct BpJsonFormatContext* ctx)
+{
+    struct Pose* m = (struct Pose*)(data);
     struct BpMessageFieldDescriptor field_descriptors[3];
     BpFieldDescriptorsInitPose(m, field_descriptors);
     struct BpMessageDescriptor descriptor = BpMessageDescriptor(false, 3, 96, field_descriptors);
     BpJsonFormatMessage(&descriptor, ctx, data);
 }
 
-void BpNativeJsonFormatFlight(void *data, struct BpJsonFormatContext *ctx) {
-    struct Flight *m = (struct Flight *)(data);
+void BpNativeJsonFormatFlight(void* data, struct BpJsonFormatContext* ctx)
+{
+    struct Flight* m = (struct Flight*)(data);
     struct BpMessageFieldDescriptor field_descriptors[3];
     BpFieldDescriptorsInitFlight(m, field_descriptors);
     struct BpMessageDescriptor descriptor = BpMessageDescriptor(false, 3, 288, field_descriptors);
     BpJsonFormatMessage(&descriptor, ctx, data);
 }
 
-void BpNativeJsonFormatDrone(void *data, struct BpJsonFormatContext *ctx) {
-    struct Drone *m = (struct Drone *)(data);
+void BpNativeJsonFormatDrone(void* data, struct BpJsonFormatContext* ctx)
+{
+    struct Drone* m = (struct Drone*)(data);
     struct BpMessageFieldDescriptor field_descriptors[7];
     BpFieldDescriptorsInitDrone(m, field_descriptors);
     struct BpMessageDescriptor descriptor = BpMessageDescriptor(false, 7, 516, field_descriptors);
     BpJsonFormatMessage(&descriptor, ctx, data);
 }
 
-size_t EncodePropeller(struct Propeller *m, unsigned char *s) {
+size_t EncodePropeller(struct Propeller* m, unsigned char* s)
+{
     struct BpProcessorContext ctx = BpProcessorContext(true, s);
-    BpNativeProcessPropeller((void *)m, &ctx);
+    BpNativeProcessPropeller((void*)m, &ctx);
     return BYTES_LENGTH_PROPELLER;
 }
 
-size_t DecodePropeller(struct Propeller *m, unsigned char *s) {
+size_t DecodePropeller(struct Propeller* m, unsigned char* s)
+{
     struct BpProcessorContext ctx = BpProcessorContext(false, s);
-    BpNativeProcessPropeller((void *)m, &ctx);
+    BpNativeProcessPropeller((void*)m, &ctx);
     return BYTES_LENGTH_PROPELLER;
 }
 
-int JsonPropeller(struct Propeller *m, char *s) {
+int JsonPropeller(struct Propeller* m, char* s)
+{
     struct BpJsonFormatContext ctx = BpJsonFormatContext(s);
-    BpNativeJsonFormatPropeller((void *)m, &ctx);
+    BpNativeJsonFormatPropeller((void*)m, &ctx);
     return ctx.n;
 }
 
-size_t EncodePower(struct Power *m, unsigned char *s) {
+size_t EncodePower(struct Power* m, unsigned char* s)
+{
     struct BpProcessorContext ctx = BpProcessorContext(true, s);
-    BpNativeProcessPower((void *)m, &ctx);
+    BpNativeProcessPower((void*)m, &ctx);
     return BYTES_LENGTH_POWER;
 }
 
-size_t DecodePower(struct Power *m, unsigned char *s) {
+size_t DecodePower(struct Power* m, unsigned char* s)
+{
     struct BpProcessorContext ctx = BpProcessorContext(false, s);
-    BpNativeProcessPower((void *)m, &ctx);
+    BpNativeProcessPower((void*)m, &ctx);
     return BYTES_LENGTH_POWER;
 }
 
-int JsonPower(struct Power *m, char *s) {
+int JsonPower(struct Power* m, char* s)
+{
     struct BpJsonFormatContext ctx = BpJsonFormatContext(s);
-    BpNativeJsonFormatPower((void *)m, &ctx);
+    BpNativeJsonFormatPower((void*)m, &ctx);
     return ctx.n;
 }
 
-size_t EncodeNetwork(struct Network *m, unsigned char *s) {
+size_t EncodeNetwork(struct Network* m, unsigned char* s)
+{
     struct BpProcessorContext ctx = BpProcessorContext(true, s);
-    BpNativeProcessNetwork((void *)m, &ctx);
+    BpNativeProcessNetwork((void*)m, &ctx);
     return BYTES_LENGTH_NETWORK;
 }
 
-size_t DecodeNetwork(struct Network *m, unsigned char *s) {
+size_t DecodeNetwork(struct Network* m, unsigned char* s)
+{
     struct BpProcessorContext ctx = BpProcessorContext(false, s);
-    BpNativeProcessNetwork((void *)m, &ctx);
+    BpNativeProcessNetwork((void*)m, &ctx);
     return BYTES_LENGTH_NETWORK;
 }
 
-int JsonNetwork(struct Network *m, char *s) {
+int JsonNetwork(struct Network* m, char* s)
+{
     struct BpJsonFormatContext ctx = BpJsonFormatContext(s);
-    BpNativeJsonFormatNetwork((void *)m, &ctx);
+    BpNativeJsonFormatNetwork((void*)m, &ctx);
     return ctx.n;
 }
 
-size_t EncodeLandingGear(struct LandingGear *m, unsigned char *s) {
+size_t EncodeLandingGear(struct LandingGear* m, unsigned char* s)
+{
     struct BpProcessorContext ctx = BpProcessorContext(true, s);
-    BpNativeProcessLandingGear((void *)m, &ctx);
+    BpNativeProcessLandingGear((void*)m, &ctx);
     return BYTES_LENGTH_LANDINGGEAR;
 }
 
-size_t DecodeLandingGear(struct LandingGear *m, unsigned char *s) {
+size_t DecodeLandingGear(struct LandingGear* m, unsigned char* s)
+{
     struct BpProcessorContext ctx = BpProcessorContext(false, s);
-    BpNativeProcessLandingGear((void *)m, &ctx);
+    BpNativeProcessLandingGear((void*)m, &ctx);
     return BYTES_LENGTH_LANDINGGEAR;
 }
 
-int JsonLandingGear(struct LandingGear *m, char *s) {
+int JsonLandingGear(struct LandingGear* m, char* s)
+{
     struct BpJsonFormatContext ctx = BpJsonFormatContext(s);
-    BpNativeJsonFormatLandingGear((void *)m, &ctx);
+    BpNativeJsonFormatLandingGear((void*)m, &ctx);
     return ctx.n;
 }
 
-size_t EncodePosition(struct Position *m, unsigned char *s) {
+size_t EncodePosition(struct Position* m, unsigned char* s)
+{
     struct BpProcessorContext ctx = BpProcessorContext(true, s);
-    BpNativeProcessPosition((void *)m, &ctx);
+    BpNativeProcessPosition((void*)m, &ctx);
     return BYTES_LENGTH_POSITION;
 }
 
-size_t DecodePosition(struct Position *m, unsigned char *s) {
+size_t DecodePosition(struct Position* m, unsigned char* s)
+{
     struct BpProcessorContext ctx = BpProcessorContext(false, s);
-    BpNativeProcessPosition((void *)m, &ctx);
+    BpNativeProcessPosition((void*)m, &ctx);
     return BYTES_LENGTH_POSITION;
 }
 
-int JsonPosition(struct Position *m, char *s) {
+int JsonPosition(struct Position* m, char* s)
+{
     struct BpJsonFormatContext ctx = BpJsonFormatContext(s);
-    BpNativeJsonFormatPosition((void *)m, &ctx);
+    BpNativeJsonFormatPosition((void*)m, &ctx);
     return ctx.n;
 }
 
-size_t EncodePose(struct Pose *m, unsigned char *s) {
+size_t EncodePose(struct Pose* m, unsigned char* s)
+{
     struct BpProcessorContext ctx = BpProcessorContext(true, s);
-    BpNativeProcessPose((void *)m, &ctx);
+    BpNativeProcessPose((void*)m, &ctx);
     return BYTES_LENGTH_POSE;
 }
 
-size_t DecodePose(struct Pose *m, unsigned char *s) {
+size_t DecodePose(struct Pose* m, unsigned char* s)
+{
     struct BpProcessorContext ctx = BpProcessorContext(false, s);
-    BpNativeProcessPose((void *)m, &ctx);
+    BpNativeProcessPose((void*)m, &ctx);
     return BYTES_LENGTH_POSE;
 }
 
-int JsonPose(struct Pose *m, char *s) {
+int JsonPose(struct Pose* m, char* s)
+{
     struct BpJsonFormatContext ctx = BpJsonFormatContext(s);
-    BpNativeJsonFormatPose((void *)m, &ctx);
+    BpNativeJsonFormatPose((void*)m, &ctx);
     return ctx.n;
 }
 
-size_t EncodeFlight(struct Flight *m, unsigned char *s) {
+size_t EncodeFlight(struct Flight* m, unsigned char* s)
+{
     struct BpProcessorContext ctx = BpProcessorContext(true, s);
-    BpNativeProcessFlight((void *)m, &ctx);
+    BpNativeProcessFlight((void*)m, &ctx);
     return BYTES_LENGTH_FLIGHT;
 }
 
-size_t DecodeFlight(struct Flight *m, unsigned char *s) {
+size_t DecodeFlight(struct Flight* m, unsigned char* s)
+{
     struct BpProcessorContext ctx = BpProcessorContext(false, s);
-    BpNativeProcessFlight((void *)m, &ctx);
+    BpNativeProcessFlight((void*)m, &ctx);
     return BYTES_LENGTH_FLIGHT;
 }
 
-int JsonFlight(struct Flight *m, char *s) {
+int JsonFlight(struct Flight* m, char* s)
+{
     struct BpJsonFormatContext ctx = BpJsonFormatContext(s);
-    BpNativeJsonFormatFlight((void *)m, &ctx);
+    BpNativeJsonFormatFlight((void*)m, &ctx);
     return ctx.n;
 }
 
-size_t EncodeDrone(struct Drone *m, unsigned char *s) {
+size_t EncodeDrone(struct Drone* m, unsigned char* s)
+{
     struct BpProcessorContext ctx = BpProcessorContext(true, s);
-    BpNativeProcessDrone((void *)m, &ctx);
+    BpNativeProcessDrone((void*)m, &ctx);
     return BYTES_LENGTH_DRONE;
 }
 
-size_t DecodeDrone(struct Drone *m, unsigned char *s) {
+size_t DecodeDrone(struct Drone* m, unsigned char* s)
+{
     struct BpProcessorContext ctx = BpProcessorContext(false, s);
-    BpNativeProcessDrone((void *)m, &ctx);
+    BpNativeProcessDrone((void*)m, &ctx);
     return BYTES_LENGTH_DRONE;
 }
 
-int JsonDrone(struct Drone *m, char *s) {
+int JsonDrone(struct Drone* m, char* s)
+{
     struct BpJsonFormatContext ctx = BpJsonFormatContext(s);
-    BpNativeJsonFormatDrone((void *)m, &ctx);
+    BpNativeJsonFormatDrone((void*)m, &ctx);
     return ctx.n;
 }
 

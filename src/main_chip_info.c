@@ -22,8 +22,9 @@
 // 声明 Zephyr 全局内核系统堆对象
 extern struct sys_heap _system_heap;
 
-int main(void) {
-    const struct device *strip = DEVICE_DT_GET(STRIP_NODE);
+int main(void)
+{
+    const struct device* strip = DEVICE_DT_GET(STRIP_NODE);
     struct led_rgb pixels[STRIP_NUM_PIXELS];
     int breath = 0;
     int breath_dir = 1;
@@ -32,13 +33,14 @@ int main(void) {
 
     // 延迟 500ms 等待硬件供电与串口驱动完全稳定
     k_sleep(K_MSEC(500));
-                                                                               
-    
+
+
     printk("\n=== ESP32-S3-Tiny System Info ===\n");
 
     // 1. Chip ID (MAC Address)
     uint8_t mac[6];
-    if (esp_efuse_mac_get_default(mac) == ESP_OK) {
+    if (esp_efuse_mac_get_default(mac) == ESP_OK)
+    {
         printk("Chip ID (MAC)   : %02X:%02X:%02X:%02X:%02X:%02X\n",
                mac[0], mac[1], mac[2], mac[3], mac[4], mac[5]);
     }
@@ -53,10 +55,13 @@ int main(void) {
     // 【修复核心】：使用 Zephyr 4.4.1 标准内核堆统计接口
     struct sys_memory_stats stats;
     int ret = sys_heap_runtime_stats_get(&_system_heap, &stats);
-    if (ret == 0) {
+    if (ret == 0)
+    {
         printk("Heap Total/Free : %zu / %zu bytes\n",
                (stats.free_bytes + stats.allocated_bytes), stats.free_bytes);
-    } else {
+    }
+    else
+    {
         printk("Failed to get heap stats (Error: %d)\n", ret);
     }
 
@@ -72,45 +77,58 @@ int main(void) {
     printk("=================================\n");
 
     ret = epd200x200_init();
-    if (ret == 0) {
+    if (ret == 0)
+    {
         ret = epd200x200_show_chinese_demo();
-        if (ret < 0) {
+        if (ret < 0)
+        {
             printk("EPD chinese demo failed: %d\n", ret);
         }
-    } else {
+    }
+    else
+    {
         printk("EPD init failed: %d\n", ret);
     }
 
-    if (!device_is_ready(strip)) {
+    if (!device_is_ready(strip))
+    {
         printk("LED strip device is not ready\n");
         return 0;
     }
 
-    while (1) {
+    while (1)
+    {
         memset(pixels, 0, sizeof(pixels));
 
         pixels[0].r = 0;
         pixels[0].g = (uint8_t)((breath * (255 - hue)) / 255);
         pixels[0].b = (uint8_t)((breath * hue) / 255);
 
-        if (led_strip_update_rgb(strip, pixels, STRIP_NUM_PIXELS) != 0) {
+        if (led_strip_update_rgb(strip, pixels, STRIP_NUM_PIXELS) != 0)
+        {
             printk("Failed to update WS2812\n");
         }
 
         breath += breath_dir;
-        if (breath >= BREATH_MAX) {
+        if (breath >= BREATH_MAX)
+        {
             breath = BREATH_MAX;
             breath_dir = -1;
-        } else if (breath <= 0) {
+        }
+        else if (breath <= 0)
+        {
             breath = 0;
             breath_dir = 1;
         }
 
         hue += hue_dir;
-        if (hue >= 255) {
+        if (hue >= 255)
+        {
             hue = 255;
             hue_dir = -1;
-        } else if (hue <= 0) {
+        }
+        else if (hue <= 0)
+        {
             hue = 0;
             hue_dir = 1;
         }

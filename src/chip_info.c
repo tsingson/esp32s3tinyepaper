@@ -12,7 +12,8 @@
 // 获取设备树中 Flash 节点的总大小
 #define FLASH_SIZE DT_REG_SIZE(DT_CHOSEN(zephyr_flash_controller))
 
-void get_memory_info(void) {
+void get_memory_info(void)
+{
     // 1. Flash 空间大小
     printk("Flash Size: %d MB\n", (uint32_t)(FLASH_SIZE / (1024 * 1024)));
 
@@ -26,19 +27,20 @@ void get_memory_info(void) {
 }
 
 
-
-void get_chip_id(void) {
+void get_chip_id(void)
+{
     uint8_t mac[6];
     // 获取基准 MAC 地址作为唯一 Chip ID
-    if (esp_efuse_mac_get_default(mac) == ESP_OK) {
+    if (esp_efuse_mac_get_default(mac) == ESP_OK)
+    {
         printk("Chip ID (MAC): %02X:%02X:%02X:%02X:%02X:%02X\n",
                mac[0], mac[1], mac[2], mac[3], mac[4], mac[5]);
     }
 }
 
 
-
-void get_cpu_freq(void) {
+void get_cpu_freq(void)
+{
     // 方式 A：Zephyr 标准内核时钟频率接口
     uint32_t hz = sys_clock_hw_cycles_per_sec();
     printk("CPU Frequency (Zephyr): %u MHz\n", hz / 1000000);
