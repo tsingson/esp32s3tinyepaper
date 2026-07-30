@@ -261,6 +261,7 @@ static int setup_usb_msc(void)
             usbd_caps_speed(&my_flash_usbd)
 
 
+
     ==
     USBD_SPEED_HS
     )

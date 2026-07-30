@@ -59,7 +59,7 @@ void consumer_thread(void* p1, void* p2, void* p3)
 #define STACK_SIZE 1024
 #define PRIORITY 7
 
-K_THREAD_DEFINE(cons_id, STACK_SIZE, consumer_thread, NULL, NULL, NULL, PRIORITY, 0, 0 );
+K_THREAD_DEFINE(cons_id, STACK_SIZE, consumer_thread, NULL, NULL, NULL, PRIORITY, 0, 0);
 
 static void trim_line_end(char* s)
 {
