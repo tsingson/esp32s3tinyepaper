@@ -16,7 +16,6 @@
 
 #define GPSEC_SERVER_IP "142.54.180.58"
 #define GPSEC_SERVER_PORT 8061
-// #define FRAME_MAGIC 0xB1
 #define GPSEC_ROUNDS 3
 #define GPSEC_RETRIES 3
 #define GPSEC_IO_TIMEOUT_MS 30000
@@ -48,7 +47,7 @@ static void fill_drone(struct Drone* drone, int seq)
 }
 
 
-static int run_roundtrip_session(void)
+static int run_roundtrip_session(const char* srv_ip, uint16_t srv_port)
 {
 	int ret = 0;
 
@@ -62,7 +61,7 @@ static int run_roundtrip_session(void)
 		size_t payload_len;
 		size_t reply_len = 0;
 
-		sock = connect_gpsec_socket(GPSEC_SERVER_IP, GPSEC_SERVER_PORT);
+		sock = connect_gpsec_socket(srv_ip, srv_port);
 		if (sock < 0)
 		{
 			printk("round %d connect failed: %d\n", seq, sock);
@@ -166,7 +165,7 @@ int main(void)
 
 	for (int attempt = 1; attempt <= GPSEC_RETRIES; attempt++)
 	{
-		ret = run_roundtrip_session();
+		ret = run_roundtrip_session(GPSEC_SERVER_IP, GPSEC_SERVER_PORT);
 		if (ret == 0)
 		{
 			printk("GPSEC tcpip example done rounds=%d attempt=%d\n", GPSEC_ROUNDS, attempt);

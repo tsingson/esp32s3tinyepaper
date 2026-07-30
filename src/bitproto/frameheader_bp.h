@@ -31,7 +31,8 @@ typedef uint8_t ProtocolVersion;
 #define PROTOCOL_VERSION_UNKNOWN 0
 #define PROTOCOL_VERSION_V1 1
 
-struct FrameHeader {
+struct FrameHeader
+{
     uint8_t magic;
     ProtocolVersion version;
     PayloadType payload_type;
@@ -40,9 +41,9 @@ struct FrameHeader {
 
 #define BYTES_LENGTH_FRAMEHEADER 4
 
-size_t EncodeFrameHeader(struct FrameHeader *m, unsigned char *s);
-size_t DecodeFrameHeader(struct FrameHeader *m, unsigned char *s);
-int JsonFrameHeader(struct FrameHeader *m, char *s);
+size_t EncodeFrameHeader(struct FrameHeader* m, unsigned char* s);
+size_t DecodeFrameHeader(struct FrameHeader* m, unsigned char* s);
+int JsonFrameHeader(struct FrameHeader* m, char* s);
 
 
 #if defined(__cplusplus)

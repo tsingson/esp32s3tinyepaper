@@ -13,7 +13,7 @@ import (
 )
 
 const (
-  	frameMagic    = byte(0xB1)
+	frameMagic    = byte(0xB1)
 	ioRetries     = 3
 	acceptRetries = 3
 )
@@ -114,7 +114,7 @@ func readFrame(conn net.Conn, timeout time.Duration) ([]byte, error) {
 
 func writeFrame(conn net.Conn, payload []byte, timeout time.Duration) error {
 	header := fh.FrameHeader{
-		Magic:        frameMagic,
+		Magic:         frameMagic,
 		PayloadType:   fh.PAYLOAD_TYPE_DRONE,
 		PayloadLength: uint16(len(payload)),
 	}

@@ -45,46 +45,54 @@ typedef uint8_t LandingGearStatus;
 #define LANDING_GEAR_STATUS_UNFOLDED 1
 #define LANDING_GEAR_STATUS_FOLDED 2
 
-struct Propeller {
+struct Propeller
+{
     uint8_t id;
     PropellerStatus status;
     RotatingDirection direction;
 };
 
-struct Power {
+struct Power
+{
     uint8_t battery;
     PowerStatus status;
     bool is_charging;
 };
 
-struct Network {
+struct Network
+{
     uint8_t signal;
     Timestamp heartbeat_at;
 };
 
-struct LandingGear {
+struct LandingGear
+{
     LandingGearStatus status;
 };
 
-struct Position {
+struct Position
+{
     int32_t latitude;
     int32_t longitude;
     int32_t altitude;
 };
 
-struct Pose {
+struct Pose
+{
     int32_t yaw;
     int32_t pitch;
     int32_t roll;
 };
 
-struct Flight {
+struct Flight
+{
     struct Pose pose;
     TernaryInt32 velocity;
     TernaryInt32 acceleration;
 };
 
-struct Drone {
+struct Drone
+{
     DroneStatus status;
     struct Position position;
     struct Flight flight;
@@ -103,37 +111,37 @@ struct Drone {
 #define BYTES_LENGTH_FLIGHT 36
 #define BYTES_LENGTH_DRONE 65
 
-size_t EncodePropeller(struct Propeller *m, unsigned char *s);
-size_t DecodePropeller(struct Propeller *m, unsigned char *s);
-int JsonPropeller(struct Propeller *m, char *s);
-size_t EncodePower(struct Power *m, unsigned char *s);
-size_t DecodePower(struct Power *m, unsigned char *s);
-int JsonPower(struct Power *m, char *s);
-size_t EncodeNetwork(struct Network *m, unsigned char *s);
-size_t DecodeNetwork(struct Network *m, unsigned char *s);
-int JsonNetwork(struct Network *m, char *s);
-size_t EncodeLandingGear(struct LandingGear *m, unsigned char *s);
-size_t DecodeLandingGear(struct LandingGear *m, unsigned char *s);
-int JsonLandingGear(struct LandingGear *m, char *s);
-size_t EncodePosition(struct Position *m, unsigned char *s);
-size_t DecodePosition(struct Position *m, unsigned char *s);
-int JsonPosition(struct Position *m, char *s);
-size_t EncodePose(struct Pose *m, unsigned char *s);
-size_t DecodePose(struct Pose *m, unsigned char *s);
-int JsonPose(struct Pose *m, char *s);
-size_t EncodeFlight(struct Flight *m, unsigned char *s);
-size_t DecodeFlight(struct Flight *m, unsigned char *s);
-int JsonFlight(struct Flight *m, char *s);
-size_t EncodeDrone(struct Drone *m, unsigned char *s);
-size_t DecodeDrone(struct Drone *m, unsigned char *s);
-int JsonDrone(struct Drone *m, char *s);
+size_t EncodePropeller(struct Propeller* m, unsigned char* s);
+size_t DecodePropeller(struct Propeller* m, unsigned char* s);
+int JsonPropeller(struct Propeller* m, char* s);
+size_t EncodePower(struct Power* m, unsigned char* s);
+size_t DecodePower(struct Power* m, unsigned char* s);
+int JsonPower(struct Power* m, char* s);
+size_t EncodeNetwork(struct Network* m, unsigned char* s);
+size_t DecodeNetwork(struct Network* m, unsigned char* s);
+int JsonNetwork(struct Network* m, char* s);
+size_t EncodeLandingGear(struct LandingGear* m, unsigned char* s);
+size_t DecodeLandingGear(struct LandingGear* m, unsigned char* s);
+int JsonLandingGear(struct LandingGear* m, char* s);
+size_t EncodePosition(struct Position* m, unsigned char* s);
+size_t DecodePosition(struct Position* m, unsigned char* s);
+int JsonPosition(struct Position* m, char* s);
+size_t EncodePose(struct Pose* m, unsigned char* s);
+size_t DecodePose(struct Pose* m, unsigned char* s);
+int JsonPose(struct Pose* m, char* s);
+size_t EncodeFlight(struct Flight* m, unsigned char* s);
+size_t DecodeFlight(struct Flight* m, unsigned char* s);
+int JsonFlight(struct Flight* m, char* s);
+size_t EncodeDrone(struct Drone* m, unsigned char* s);
+size_t DecodeDrone(struct Drone* m, unsigned char* s);
+int JsonDrone(struct Drone* m, char* s);
 
-static inline void SetPositionLatitudeFloat(struct Position *m, double v) { m->latitude = BpFloatToInt32(v); }
-static inline double GetPositionLatitudeFloat(const struct Position *m) { return BpInt32ToFloat(m->latitude); }
-static inline void SetPositionLongitudeFloat(struct Position *m, double v) { m->longitude = BpFloatToInt32(v); }
-static inline double GetPositionLongitudeFloat(const struct Position *m) { return BpInt32ToFloat(m->longitude); }
-static inline void SetPositionAltitudeFloat(struct Position *m, double v) { m->altitude = BpFloatToInt32(v); }
-static inline double GetPositionAltitudeFloat(const struct Position *m) { return BpInt32ToFloat(m->altitude); }
+static inline void SetPositionLatitudeFloat(struct Position* m, double v) { m->latitude = BpFloatToInt32(v); }
+static inline double GetPositionLatitudeFloat(const struct Position* m) { return BpInt32ToFloat(m->latitude); }
+static inline void SetPositionLongitudeFloat(struct Position* m, double v) { m->longitude = BpFloatToInt32(v); }
+static inline double GetPositionLongitudeFloat(const struct Position* m) { return BpInt32ToFloat(m->longitude); }
+static inline void SetPositionAltitudeFloat(struct Position* m, double v) { m->altitude = BpFloatToInt32(v); }
+static inline double GetPositionAltitudeFloat(const struct Position* m) { return BpInt32ToFloat(m->altitude); }
 
 #if defined(__cplusplus)
 }

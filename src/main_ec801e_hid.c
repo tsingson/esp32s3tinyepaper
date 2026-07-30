@@ -46,7 +46,7 @@ USBD_DEVICE_DEFINE(my_flash_usbd,
                    DEVICE_DT_GET(DT_NODELABEL(zephyr_udc0)),
                    0x16c0,
                    0x05e3);
-USBD_DESC_LANG_DEFINE (usb_lang);
+USBD_DESC_LANG_DEFINE(usb_lang);
 USBD_DESC_MANUFACTURER_DEFINE(usb_mfr, "Qinshen");
 USBD_DESC_PRODUCT_DEFINE(usb_product, "ESP32S3 Tiny MSC+TCP");
 USBD_DESC_CONFIG_DEFINE(usb_fs_cfg_desc, "FS Configuration");
@@ -274,9 +274,9 @@ static int setup_usb_msc(void)
         return ret;
     }
 
-    if (USBD_SUPPORTS_HIGH_SPEED&& usbd_caps_speed(&my_flash_usbd)
-    ==
-    USBD_SPEED_HS
+    if (USBD_SUPPORTS_HIGH_SPEED && usbd_caps_speed(&my_flash_usbd)
+        ==
+        USBD_SPEED_HS
     )
     {
         ret = usbd_add_configuration(&my_flash_usbd, USBD_SPEED_HS, &usb_hs_config);

@@ -18,9 +18,9 @@
 #define GPSEC_IO_TIMEOUT_MS 30000
 #define GPSEC_RETRY_BACKOFF_MS 1000
 
-int send_all(int sock, const uint8_t *buf, size_t len);
-int recv_all(int sock, uint8_t *buf, size_t len);
+int send_all(int sock, const uint8_t* buf, size_t len);
+int recv_all(int sock, uint8_t* buf, size_t len);
 
-int connect_gpsec_socket( const char* srv_ip, uint16_t srv_port);
+int connect_gpsec_socket(const char* srv_ip, uint16_t srv_port);
 
 #endif //ESP32_CHIP_INFO_SOCKET_UTLS_H

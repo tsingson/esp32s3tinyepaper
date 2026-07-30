@@ -4,8 +4,8 @@ package drone
 
 import (
 	"encoding/json"
-	"strconv"
 	bp "github.com/tsingson/bitproto/lib/go"
+	"strconv"
 )
 
 var formatInt = strconv.FormatInt
@@ -28,10 +28,10 @@ type DroneStatus uint8
 
 const (
 	DRONE_STATUS_UNKNOWN DroneStatus = 0
-	DRONE_STATUS_STANDBY = 1
-	DRONE_STATUS_RISING = 2
-	DRONE_STATUS_LANDING = 3
-	DRONE_STATUS_FLYING = 4
+	DRONE_STATUS_STANDBY             = 1
+	DRONE_STATUS_RISING              = 2
+	DRONE_STATUS_LANDING             = 3
+	DRONE_STATUS_FLYING              = 4
 )
 
 func (m DroneStatus) BpProcessor() bp.Processor {
@@ -51,16 +51,16 @@ func (v DroneStatus) String() string {
 	case 4:
 		return "DRONE_STATUS_FLYING"
 	default:
-		return "DroneStatus("+formatInt(int64(v), 10)+")"
+		return "DroneStatus(" + formatInt(int64(v), 10) + ")"
 	}
 }
 
 type PropellerStatus uint8
 
 const (
-	PROPELLER_STATUS_UNKNOWN PropellerStatus = 0
-	PROPELLER_STATUS_IDLE = 1
-	PROPELLER_STATUS_ROTATING = 2
+	PROPELLER_STATUS_UNKNOWN  PropellerStatus = 0
+	PROPELLER_STATUS_IDLE                     = 1
+	PROPELLER_STATUS_ROTATING                 = 2
 )
 
 func (m PropellerStatus) BpProcessor() bp.Processor {
@@ -76,16 +76,16 @@ func (v PropellerStatus) String() string {
 	case 2:
 		return "PROPELLER_STATUS_ROTATING"
 	default:
-		return "PropellerStatus("+formatInt(int64(v), 10)+")"
+		return "PropellerStatus(" + formatInt(int64(v), 10) + ")"
 	}
 }
 
 type RotatingDirection uint8
 
 const (
-	ROTATING_DIRECTION_UNKNOWN RotatingDirection = 0
-	ROTATING_DIRECTION_CLOCK_WISE = 1
-	ROTATING_DIRECTION_ANTI_CLOCK_WISE = 2
+	ROTATING_DIRECTION_UNKNOWN         RotatingDirection = 0
+	ROTATING_DIRECTION_CLOCK_WISE                        = 1
+	ROTATING_DIRECTION_ANTI_CLOCK_WISE                   = 2
 )
 
 func (m RotatingDirection) BpProcessor() bp.Processor {
@@ -101,7 +101,7 @@ func (v RotatingDirection) String() string {
 	case 2:
 		return "ROTATING_DIRECTION_ANTI_CLOCK_WISE"
 	default:
-		return "RotatingDirection("+formatInt(int64(v), 10)+")"
+		return "RotatingDirection(" + formatInt(int64(v), 10) + ")"
 	}
 }
 
@@ -109,8 +109,8 @@ type PowerStatus uint8
 
 const (
 	POWER_STATUS_UNKNOWN PowerStatus = 0
-	POWER_STATUS_OFF = 1
-	POWER_STATUS_ON = 2
+	POWER_STATUS_OFF                 = 1
+	POWER_STATUS_ON                  = 2
 )
 
 func (m PowerStatus) BpProcessor() bp.Processor {
@@ -126,16 +126,16 @@ func (v PowerStatus) String() string {
 	case 2:
 		return "POWER_STATUS_ON"
 	default:
-		return "PowerStatus("+formatInt(int64(v), 10)+")"
+		return "PowerStatus(" + formatInt(int64(v), 10) + ")"
 	}
 }
 
 type LandingGearStatus uint8
 
 const (
-	LANDING_GEAR_STATUS_UNKNOWN LandingGearStatus = 0
-	LANDING_GEAR_STATUS_UNFOLDED = 1
-	LANDING_GEAR_STATUS_FOLDED = 2
+	LANDING_GEAR_STATUS_UNKNOWN  LandingGearStatus = 0
+	LANDING_GEAR_STATUS_UNFOLDED                   = 1
+	LANDING_GEAR_STATUS_FOLDED                     = 2
 )
 
 func (m LandingGearStatus) BpProcessor() bp.Processor {
@@ -151,24 +151,24 @@ func (v LandingGearStatus) String() string {
 	case 2:
 		return "LANDING_GEAR_STATUS_FOLDED"
 	default:
-		return "LandingGearStatus("+formatInt(int64(v), 10)+")"
+		return "LandingGearStatus(" + formatInt(int64(v), 10) + ")"
 	}
 }
 
 type Propeller struct {
-	Id uint8 `json:"id"`
-	Status PropellerStatus `json:"status"`
+	Id        uint8             `json:"id"`
+	Status    PropellerStatus   `json:"status"`
 	Direction RotatingDirection `json:"direction"`
 }
 
 type Power struct {
-	Battery uint8 `json:"battery"`
-	Status PowerStatus `json:"status"`
-	IsCharging bool `json:"is_charging"`
+	Battery    uint8       `json:"battery"`
+	Status     PowerStatus `json:"status"`
+	IsCharging bool        `json:"is_charging"`
 }
 
 type Network struct {
-	Signal uint8 `json:"signal"`
+	Signal      uint8     `json:"signal"`
 	HeartbeatAt Timestamp `json:"heartbeat_at"`
 }
 
@@ -177,31 +177,31 @@ type LandingGear struct {
 }
 
 type Position struct {
-	Latitude int32 `json:"latitude"`
+	Latitude  int32 `json:"latitude"`
 	Longitude int32 `json:"longitude"`
-	Altitude int32 `json:"altitude"`
+	Altitude  int32 `json:"altitude"`
 }
 
 type Pose struct {
-	Yaw int32 `json:"yaw"`
+	Yaw   int32 `json:"yaw"`
 	Pitch int32 `json:"pitch"`
-	Roll int32 `json:"roll"`
+	Roll  int32 `json:"roll"`
 }
 
 type Flight struct {
-	Pose Pose `json:"pose"`
-	Velocity TernaryInt32 `json:"velocity"`
+	Pose         Pose         `json:"pose"`
+	Velocity     TernaryInt32 `json:"velocity"`
 	Acceleration TernaryInt32 `json:"acceleration"`
 }
 
 type Drone struct {
-	Status DroneStatus `json:"status"`
-	Position Position `json:"position"`
-	Flight Flight `json:"flight"`
-	Propellers [4]Propeller `json:"propellers"`
-	Power Power `json:"power"`
-	Network Network `json:"network"`
-	LandingGear LandingGear `json:"landing_gear"`
+	Status      DroneStatus  `json:"status"`
+	Position    Position     `json:"position"`
+	Flight      Flight       `json:"flight"`
+	Propellers  [4]Propeller `json:"propellers"`
+	Power       Power        `json:"power"`
+	Network     Network      `json:"network"`
+	LandingGear LandingGear  `json:"landing_gear"`
 }
 
 const BYTES_LENGTH_PROPELLER uint32 = 2
@@ -763,4 +763,3 @@ func (m *Drone) BpProcessInt(di *bp.DataIndexer) {
 		return
 	}
 }
-
