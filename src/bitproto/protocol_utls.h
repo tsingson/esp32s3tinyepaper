@@ -17,8 +17,8 @@
 #include "socket_utls.h"
 
 
-int read_frame(int sock, uint8_t *payload, size_t payload_capacity, size_t *out_len);
-int write_frame(int sock, const uint8_t *payload, size_t payload_len);
+int read_frame(int sock, uint8_t* payload, size_t payload_capacity, size_t* out_len);
+int write_frame(int sock, const uint8_t* payload, size_t payload_len);
 
 
 #endif //ESP32_CHIP_INFO_FRAME_UTLS_H
