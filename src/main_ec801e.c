@@ -9,7 +9,6 @@
 
 #include "ec801e.h"
 #include "bitproto/drone_bp.h"
-#include "bitproto/frameheader_bp.h"
 #include "bitproto/socket_utls.h"
 #include "bitproto/protocol_utls.h"
 
@@ -114,6 +113,7 @@ static int run_roundtrip_session(const char* srv_ip, uint16_t srv_port)
 		       (unsigned int)reply_drone.position.longitude,
 		       (unsigned int)reply_drone.position.altitude);
 		(void)zsock_close(sock);
+		break;
 	}
 	return ret;
 }
