@@ -15,11 +15,12 @@
 #include <zephyr/drivers/gpio.h>
 #include <zephyr/drivers/uart.h>
 #include <zephyr/kernel.h>
-#include <zephyr/sys/printk.h>
+#include <zephyr/logging/log.h>
 #include <zephyr/sys/util.h>
 
 #define EC801E_NODE DT_INST(0, quectel_ec801e)
 #define EC801E_UART_NODE DT_PHANDLE(EC801E_NODE, mdm_uart)
+LOG_MODULE_REGISTER(ec801e, LOG_LEVEL_INF);
 
 #define EC801E_RX_BUF_LEN 3072
 #define EC801E_CMD_BUF_LEN 256
@@ -42,7 +43,7 @@ static char ec801e_rsp_buf[EC801E_RX_BUF_LEN];
 #define EC801E_VLOG(...) \
 	do { \
 		if (IS_ENABLED(CONFIG_EC801E_VERBOSE_LOG)) { \
-			printk(__VA_ARGS__); \
+			LOG_DBG(__VA_ARGS__); \
 		} \
 	} while (0)
 
@@ -172,9 +173,9 @@ static int ec801e_wait_response(const char *ok1, const char *ok2, const char *ok
 	}
 
 	if (out != NULL) {
-		printk("EC801E: wait timeout, rx_count=%u, buf='%s'\n", (unsigned int)rx_count, out);
+		LOG_WRN("EC801E: wait timeout, rx_count=%u, buf='%s'", (unsigned int)rx_count, out);
 	} else {
-		printk("EC801E: wait timeout, rx_count=%u\n", (unsigned int)rx_count);
+		LOG_WRN("EC801E: wait timeout, rx_count=%u", (unsigned int)rx_count);
 	}
 
 	return -ETIMEDOUT;
@@ -209,7 +210,7 @@ static int ec801e_cmd_expect_retry(const char *cmd, const char *ok1, const char 
 		}
 
 		if (ret == -EHOSTDOWN) {
-			printk("EC801E: reboot marker while waiting '%s', cool down then retry\n", cmd);
+			LOG_INF("EC801E: reboot marker while waiting '%s', cool down then retry\n", cmd);
 			k_sleep(K_MSEC(EC801E_BOOT_WAIT_MS));
 			continue;
 		}
@@ -278,11 +279,11 @@ static int ec801e_wait_cereg_registered(int timeout_ms)
 
 		ret = ec801e_wait_response("OK", NULL, NULL, "ERROR", "CME ERROR",
 					   EC801E_MEDIUM_TIMEOUT_MS, rsp, EC801E_RX_BUF_LEN);
-		printk("<- %s\n", rsp);
+		LOG_INF("<- %s\n", rsp);
 		if (ret < 0) {
 			if (ret == -EHOSTDOWN || ec801e_contains_reboot_marker(rsp)) {
 				reboot_hits++;
-				printk("EC801E: reboot marker during CEREG wait (%d), re-sync AT\n",
+				LOG_INF("EC801E: reboot marker during CEREG wait (%d), re-sync AT\n",
 				       reboot_hits);
 				/* Modem restarted mid-flow: wait stable, then redo full lightweight init. */
 				k_sleep(K_MSEC(EC801E_BOOT_WAIT_MS));
@@ -298,7 +299,7 @@ static int ec801e_wait_cereg_registered(int timeout_ms)
 				if (reboot_hits >= EC801E_REBOOT_HIT_THRESHOLD) {
 					int hret = ec801e_try_hard_recovery();
 					if (hret == 0) {
-						printk("EC801E: hard recovery done, restart CEREG wait\n");
+						LOG_INF("EC801E: hard recovery done, restart CEREG wait\n");
 						reboot_hits = 0;
 						deadline = k_uptime_get() + timeout_ms;
 						(void)ec801e_cmd_expect_retry("AT+CFUN=1", "OK", NULL,
@@ -321,7 +322,7 @@ static int ec801e_wait_cereg_registered(int timeout_ms)
 			char *comma = strchr(p, ',');
 			if (comma != NULL) {
 				int stat = atoi(comma + 1);
-				printk("EC801E: CEREG stat=%d\n", stat);
+				LOG_INF("EC801E: CEREG stat=%d\n", stat);
 				if (stat == 1 || stat == 5) {
 					return 0;
 				}
@@ -332,7 +333,7 @@ static int ec801e_wait_cereg_registered(int timeout_ms)
 	}
 
 	if (reboot_hits > 0) {
-		printk("EC801E: CEREG timed out with %d modem reboot markers, check module power rail\n",
+		LOG_INF("EC801E: CEREG timed out with %d modem reboot markers, check module power rail\n",
 		       reboot_hits);
 	}
 
@@ -372,19 +373,19 @@ static int ec801e_ensure_pdp_activated(void)
 
 	ret = ec801e_wait_response("OK", NULL, NULL, "ERROR", "CME ERROR",
 				   EC801E_MEDIUM_TIMEOUT_MS, rsp, EC801E_RX_BUF_LEN);
-	printk("<- %s\n", rsp);
+	LOG_INF("<- %s\n", rsp);
 	if (ret == 0 && ec801e_qiact_rsp_has_ctx1_active(rsp)) {
-		printk("EC801E: PDP ctx1 already active, skip QIACT\n");
+		LOG_INF("EC801E: PDP ctx1 already active, skip QIACT\n");
 		return 0;
 	}
 
-	printk("EC801E: activate PDP ctx1 (may take up to %d ms)\n", EC801E_PDP_ACT_TIMEOUT_MS);
+	LOG_INF("EC801E: activate PDP ctx1 (may take up to %d ms)\n", EC801E_PDP_ACT_TIMEOUT_MS);
 	ret = ec801e_cmd_expect_retry("AT+QIACT=1", "OK", NULL, EC801E_PDP_ACT_TIMEOUT_MS, 3);
 	if (ret == 0) {
 		return 0;
 	}
 
-	printk("EC801E: QIACT returned %d, check current PDP state\n", ret);
+	LOG_INF("EC801E: QIACT returned %d, check current PDP state\n", ret);
 	ret = ec801e_send_cmd("AT+QIACT?");
 	if (ret < 0) {
 		return ret;
@@ -392,9 +393,9 @@ static int ec801e_ensure_pdp_activated(void)
 
 	ret = ec801e_wait_response("OK", NULL, NULL, "ERROR", "CME ERROR", EC801E_MEDIUM_TIMEOUT_MS,
 				   rsp, EC801E_RX_BUF_LEN);
-	printk("<- %s\n", rsp);
+	LOG_INF("<- %s\n", rsp);
 	if (ret == 0 && ec801e_qiact_rsp_has_ctx1_active(rsp)) {
-		printk("EC801E: PDP ctx1 already active, continue\n");
+		LOG_INF("EC801E: PDP ctx1 already active, continue\n");
 		return 0;
 	}
 
@@ -465,14 +466,14 @@ static int ec801e_probe_uart_only(void)
 	for (size_t i = 0; i < ARRAY_SIZE(probe_bauds); i++) {
 		ret = ec801e_set_baud(probe_bauds[i]);
 		if (ret < 0) {
-			printk("EC801E: uart set baud %u failed: %d\n", (unsigned int)probe_bauds[i], ret);
+			LOG_INF("EC801E: uart set baud %u failed: %d\n", (unsigned int)probe_bauds[i], ret);
 			continue;
 		}
 
-		printk("EC801E: UART probe AT at %u bps\n", (unsigned int)probe_bauds[i]);
+		LOG_INF("EC801E: UART probe AT at %u bps\n", (unsigned int)probe_bauds[i]);
 		ret = ec801e_handshake_at();
 		if (ret == 0) {
-			printk("EC801E: UART AT probe success at %u bps\n", (unsigned int)probe_bauds[i]);
+			LOG_INF("EC801E: UART AT probe success at %u bps\n", (unsigned int)probe_bauds[i]);
 			return 0;
 		}
 	}
@@ -488,7 +489,7 @@ static int ec801e_post_handshake_init(void)
 		/* Re-sync command channel first, because URCs/noise may desync line parsing. */
 		ret = ec801e_handshake_at();
 		if (ret < 0) {
-			printk("EC801E: post-handshake AT sync failed (try %d): %d\n", attempt + 1, ret);
+			LOG_INF("EC801E: post-handshake AT sync failed (try %d): %d\n", attempt + 1, ret);
 			k_sleep(K_MSEC(300));
 			continue;
 		}
@@ -499,7 +500,7 @@ static int ec801e_post_handshake_init(void)
 				k_sleep(K_MSEC(EC801E_BOOT_WAIT_MS));
 				continue;
 			}
-			printk("EC801E: ATE0 failed (try %d): %d\n", attempt + 1, ret);
+			LOG_INF("EC801E: ATE0 failed (try %d): %d\n", attempt + 1, ret);
 			k_sleep(K_MSEC(300));
 			continue;
 		}
@@ -514,7 +515,7 @@ static int ec801e_post_handshake_init(void)
 			continue;
 		}
 
-		printk("EC801E: CPIN check failed (try %d): %d\n", attempt + 1, ret);
+		LOG_INF("EC801E: CPIN check failed (try %d): %d\n", attempt + 1, ret);
 		if (ret == -EIO) {
 			/* +CME ERROR here is often transient before SIM service is fully ready. */
 			k_sleep(K_MSEC(1000));
@@ -540,14 +541,14 @@ int ec801e_uart_rw_selftest(void)
 	bool any_rx = false;
 
 	if (!device_is_ready(ec801e_uart)) {
-		printk("EC801E UART selftest: uart1 not ready\n");
+		LOG_INF("EC801E UART selftest: uart1 not ready\n");
 		return -ENODEV;
 	}
 
 	for (size_t i = 0; i < ARRAY_SIZE(probe_bauds); i++) {
 		ret = ec801e_set_baud(probe_bauds[i]);
 		if (ret < 0) {
-			printk("EC801E UART selftest: set baud %u failed: %d\n",
+			LOG_INF("EC801E UART selftest: set baud %u failed: %d\n",
 			       (unsigned int)probe_bauds[i], ret);
 			continue;
 		}
@@ -555,7 +556,7 @@ int ec801e_uart_rw_selftest(void)
 		ec801e_drain_rx();
 		rx[0] = '\0';
 
-		printk("EC801E UART selftest: TX 'AT' at %u bps\n", (unsigned int)probe_bauds[i]);
+		LOG_INF("EC801E UART selftest: TX 'AT' at %u bps\n", (unsigned int)probe_bauds[i]);
 		(void)ec801e_send_raw("AT\r");
 
 		ret = ec801e_wait_response("OK", "+CME ERROR", "ERROR", NULL, NULL,
@@ -563,15 +564,15 @@ int ec801e_uart_rw_selftest(void)
 
 		if (rx[0] != '\0') {
 			any_rx = true;
-			printk("EC801E UART selftest: RX preview at %u bps: '%s'\n",
+			LOG_INF("EC801E UART selftest: RX preview at %u bps: '%s'\n",
 			       (unsigned int)probe_bauds[i], rx);
 		} else {
-			printk("EC801E UART selftest: no RX at %u bps\n", (unsigned int)probe_bauds[i]);
+			LOG_INF("EC801E UART selftest: no RX at %u bps\n", (unsigned int)probe_bauds[i]);
 		}
 
 		if (ret == 0 && strstr(rx, "OK") != NULL) {
 			ec801e_uart_verified = true;
-			printk("EC801E UART selftest: PASS at %u bps (AT OK)\n",
+			LOG_INF("EC801E UART selftest: PASS at %u bps (AT OK)\n",
 			       (unsigned int)probe_bauds[i]);
 			return 0;
 		}
@@ -580,11 +581,11 @@ int ec801e_uart_rw_selftest(void)
 	ec801e_uart_verified = false;
 
 	if (any_rx) {
-		printk("EC801E UART selftest: partial PASS (RX exists, but no AT OK)\n");
+		LOG_INF("EC801E UART selftest: partial PASS (RX exists, but no AT OK)\n");
 		return -EAGAIN;
 	}
 
-	printk("EC801E UART selftest: FAIL (no RX on all bauds)\n");
+	LOG_INF("EC801E UART selftest: FAIL (no RX on all bauds)\n");
 	return -ETIMEDOUT;
 }
 
@@ -614,7 +615,7 @@ static int ec801e_try_hard_recovery(void)
 		return ret;
 	}
 
-	printk("EC801E: hard recovery via EN power-cycle\n");
+	LOG_INF("EC801E: hard recovery via EN power-cycle\n");
 	ec801e_power_cycle((ec801e_power_gpio.dt_flags & GPIO_ACTIVE_LOW) != 0U);
 
 	ret = ec801e_probe_uart_only();
@@ -635,17 +636,17 @@ int ec801e_boot(void)
 	int ret;
 
 	if (!device_is_ready(ec801e_uart)) {
-		printk("EC801E device not ready\n");
+		LOG_INF("EC801E device not ready\n");
 		return -ENODEV;
 	}
 
 	if (ec801e_uart_verified) {
-		printk("EC801E: UART already verified, skip EN/probe stage\n");
+		LOG_INF("EC801E: UART already verified, skip EN/probe stage\n");
 		goto post_handshake;
 	}
 
 	if (!ec801e_power_gpio_available()) {
-		printk("EC801E: EN GPIO unavailable, continue with UART-only probe\n");
+		LOG_INF("EC801E: EN GPIO unavailable, continue with UART-only probe\n");
 		goto probe_only;
 	}
 
@@ -663,23 +664,23 @@ probe_only:
 	}
 
 	if (!ec801e_power_gpio_available()) {
-		printk("EC801E: UART-only probe failed and EN GPIO unavailable\n");
+		LOG_INF("EC801E: UART-only probe failed and EN GPIO unavailable\n");
 		return ret;
 	}
 
-	printk("EC801E: UART-only probe failed, continue with EN power-cycle recovery\n");
+	LOG_INF("EC801E: UART-only probe failed, continue with EN power-cycle recovery\n");
 
 	/* Try low-active EN first (common on modem power key rails), then fallback. */
 	ec801e_power_cycle((ec801e_power_gpio.dt_flags & GPIO_ACTIVE_LOW) != 0U);
 	ret = ec801e_probe_uart_only();
 	if (ret < 0) {
-		printk("EC801E: low-active EN handshake failed, retry high-active EN\n");
+		LOG_INF("EC801E: low-active EN handshake failed, retry high-active EN\n");
 		ec801e_power_cycle((ec801e_power_gpio.dt_flags & GPIO_ACTIVE_LOW) == 0U);
 		ret = ec801e_probe_uart_only();
 	}
 
 	if (ret < 0) {
-		printk("EC801E: AT handshake timeout after power-on\n");
+		LOG_INF("EC801E: AT handshake timeout after power-on\n");
 		return ret;
 	}
 
@@ -692,7 +693,7 @@ post_handshake:
 
 	ret = ec801e_cmd_expect("AT+QICLOSE=0", "OK", "ERROR", EC801E_SHORT_TIMEOUT_MS);
 	if (ret < 0) {
-		printk("EC801E: ignore socket close result %d\n", ret);
+		LOG_INF("EC801E: ignore socket close result %d\n", ret);
 	}
 
 	return 0;
@@ -715,7 +716,7 @@ int ec801e_prepare_network(const char *apn)
 
 	ret = ec801e_wait_cereg_registered(90000);
 	if (ret < 0) {
-		printk("EC801E: network not registered yet\n");
+		LOG_INF("EC801E: network not registered yet\n");
 		return ret;
 	}
 
@@ -744,7 +745,7 @@ int ec801e_prepare_network(const char *apn)
 
 	ret = ec801e_cmd_expect_retry("AT+CGPADDR=1", "OK", NULL, EC801E_MEDIUM_TIMEOUT_MS, 2);
 	if (ret < 0) {
-		printk("EC801E: warn - CGPADDR query failed, continue to socket stage\n");
+		LOG_INF("EC801E: warn - CGPADDR query failed, continue to socket stage\n");
 	}
 
 	return 0;
@@ -789,7 +790,7 @@ int ec801e_socket_open_ssl(const char *remote_host, uint16_t remote_port)
 		}
 
 		if (!sslver_ok) {
-			printk("EC801E: sslversion unsupported on ctx=%d\n", ctx);
+			LOG_INF("EC801E: sslversion unsupported on ctx=%d\n", ctx);
 			continue;
 		}
 
@@ -817,7 +818,7 @@ int ec801e_socket_open_ssl(const char *remote_host, uint16_t remote_port)
 	}
 
 	if (selected_ctx < 0) {
-		printk("EC801E: no usable QSSLCFG profile found, try direct SSL open\n");
+		LOG_INF("EC801E: no usable QSSLCFG profile found, try direct SSL open\n");
 	}
 
 	for (size_t i = 0; i < ARRAY_SIZE(access_modes); i++) {
@@ -829,7 +830,7 @@ int ec801e_socket_open_ssl(const char *remote_host, uint16_t remote_port)
 		}
 
 		ret = ec801e_wait_qiopen_result(EC801E_LONG_TIMEOUT_MS, rsp, EC801E_RX_BUF_LEN);
-		printk("<- %s\n", rsp);
+		LOG_INF("<- %s\n", rsp);
 		if (ret == 0) {
 			return 0;
 		}
@@ -857,7 +858,7 @@ static int ec801e_fetch_cloudflare_trace_qhttp_url(const char *url)
 
 	ret = ec801e_wait_response("CONNECT", NULL, NULL, "ERROR", NULL,
 				   EC801E_QHTTP_CONNECT_TIMEOUT_MS, rsp, EC801E_RX_BUF_LEN);
-	printk("<- %s\n", rsp);
+	LOG_INF("<- %s\n", rsp);
 	if (ret < 0) {
 		return ret;
 	}
@@ -873,7 +874,7 @@ static int ec801e_fetch_cloudflare_trace_qhttp_url(const char *url)
 
 	ret = ec801e_wait_response("OK", NULL, NULL, "ERROR", "CME ERROR", EC801E_MEDIUM_TIMEOUT_MS,
 				   rsp, EC801E_RX_BUF_LEN);
-	printk("<- %s\n", rsp);
+	LOG_INF("<- %s\n", rsp);
 	if (ret < 0) {
 		return ret;
 	}
@@ -885,7 +886,7 @@ static int ec801e_fetch_cloudflare_trace_qhttp_url(const char *url)
 
 	ret = ec801e_wait_response("+QHTTPGET: 0,200", "+QHTTPGET: 0,206", "OK", "ERROR",
 				   "CME ERROR", EC801E_QHTTP_CONNECT_TIMEOUT_MS, rsp, EC801E_RX_BUF_LEN);
-	printk("<- %s\n", rsp);
+	LOG_INF("<- %s\n", rsp);
 	if (ret < 0) {
 		return ret;
 	}
@@ -895,9 +896,9 @@ static int ec801e_fetch_cloudflare_trace_qhttp_url(const char *url)
 		ret = ec801e_wait_response("+QHTTPGET: 0,200", "+QHTTPGET: 0,206", NULL,
 					   "ERROR", "CME ERROR", EC801E_QHTTP_CONNECT_TIMEOUT_MS,
 					   rsp, EC801E_RX_BUF_LEN);
-		printk("<- %s\n", rsp);
+		LOG_INF("<- %s\n", rsp);
 		if (ret < 0) {
-			printk("EC801E: no QHTTPGET URC, continue with QHTTPREAD attempt\n");
+			LOG_INF("EC801E: no QHTTPGET URC, continue with QHTTPREAD attempt\n");
 		}
 	}
 
@@ -905,13 +906,13 @@ static int ec801e_fetch_cloudflare_trace_qhttp_url(const char *url)
 
 	ret = ec801e_send_cmd("AT+QHTTPREAD=80");
 	if (ret < 0) {
-		printk("EC801E: QHTTPREAD=80 send failed, try QHTTPREAD\n");
+		LOG_INF("EC801E: QHTTPREAD=80 send failed, try QHTTPREAD\n");
 		goto read_no_arg;
 	}
 
 	ret = ec801e_wait_response("OK", NULL, NULL, "ERROR", "CME ERROR",
 				   EC801E_LONG_TIMEOUT_MS, rsp, EC801E_RX_BUF_LEN);
-	printk("QHTTP TRACE RAW:\n%s\n", rsp);
+	LOG_INF("QHTTP TRACE RAW:\n%s\n", rsp);
 	if (ret == 0) {
 		return 0;
 	}
@@ -924,7 +925,7 @@ read_no_arg:
 
 	ret = ec801e_wait_response("OK", NULL, NULL, "ERROR", "CME ERROR",
 				   EC801E_LONG_TIMEOUT_MS, rsp, EC801E_RX_BUF_LEN);
-	printk("QHTTP TRACE RAW:\n%s\n", rsp);
+	LOG_INF("QHTTP TRACE RAW:\n%s\n", rsp);
 	if (ret < 0) {
 		return ret;
 	}
@@ -950,7 +951,7 @@ static int ec801e_send_http_trace_request(void)
 
 	ret = ec801e_wait_response(">", NULL, NULL, "ERROR", NULL, EC801E_MEDIUM_TIMEOUT_MS, rsp,
 				   EC801E_RX_BUF_LEN);
-	printk("<- %s\n", rsp);
+	LOG_INF("<- %s\n", rsp);
 	if (ret < 0) {
 		return ret;
 	}
@@ -962,7 +963,7 @@ static int ec801e_send_http_trace_request(void)
 
 	ret = ec801e_wait_response("SEND OK", NULL, NULL, "SEND FAIL", "ERROR",
 				   EC801E_MEDIUM_TIMEOUT_MS, rsp, EC801E_RX_BUF_LEN);
-	printk("<- %s\n", rsp);
+	LOG_INF("<- %s\n", rsp);
 	if (ret < 0) {
 		return ret;
 	}
@@ -987,7 +988,7 @@ static int ec801e_read_trace_payload(void)
 			return ret;
 		}
 
-		printk("TRACE CHUNK[%d]:\n%s\n", i, rsp);
+		LOG_INF("TRACE CHUNK[%d]:\n%s\n", i, rsp);
 
 		if (strstr(rsp, "h=") != NULL && strstr(rsp, "ip=") != NULL && strstr(rsp, "tls=") != NULL) {
 			break;
@@ -1005,13 +1006,13 @@ int ec801e_fetch_cloudflare_trace(void)
 
 	ret = ec801e_socket_open_ssl("www.cloudflare.com", 443);
 	if (ret < 0) {
-		printk("EC801E open SSL socket failed: %d, fallback to QHTTP HTTPS\n", ret);
+		LOG_INF("EC801E open SSL socket failed: %d, fallback to QHTTP HTTPS\n", ret);
 		ret = ec801e_fetch_cloudflare_trace_qhttp_url("https://www.cloudflare.com/cdn-cgi/trace");
 		if (ret < 0) {
-			printk("EC801E HTTPS QHTTP fallback failed: %d, retry plain HTTP\n", ret);
+			LOG_INF("EC801E HTTPS QHTTP fallback failed: %d, retry plain HTTP\n", ret);
 			ret = ec801e_fetch_cloudflare_trace_qhttp_url("http://www.cloudflare.com/cdn-cgi/trace");
 			if (ret < 0) {
-				printk("EC801E plain HTTP fallback failed: %d\n", ret);
+				LOG_INF("EC801E plain HTTP fallback failed: %d\n", ret);
 			}
 		}
 		return ret;
@@ -1019,13 +1020,13 @@ int ec801e_fetch_cloudflare_trace(void)
 
 	ret = ec801e_send_http_trace_request();
 	if (ret < 0) {
-		printk("EC801E send request failed: %d\n", ret);
+		LOG_INF("EC801E send request failed: %d\n", ret);
 		goto out_close;
 	}
 
 	ret = ec801e_read_trace_payload();
 	if (ret < 0) {
-		printk("EC801E read payload failed: %d\n", ret);
+		LOG_INF("EC801E read payload failed: %d\n", ret);
 	}
 
 out_close:
@@ -1153,7 +1154,7 @@ int ec801e_resolve_ipv4(const char *host, char *ip, size_t ip_len)
 
 		ret = ec801e_wait_response("OK", NULL, NULL, "ERROR", "CME ERROR",
 					   EC801E_LONG_TIMEOUT_MS, rsp, EC801E_RX_BUF_LEN);
-		printk("<- %s\n", rsp);
+		LOG_INF("<- %s\n", rsp);
 		if (ret < 0) {
 			continue;
 		}
@@ -1167,7 +1168,7 @@ int ec801e_resolve_ipv4(const char *host, char *ip, size_t ip_len)
 		ret = ec801e_wait_response("+QIDNSGIP:", NULL, NULL, "ERROR", "CME ERROR",
 					   EC801E_MEDIUM_TIMEOUT_MS, rsp, EC801E_RX_BUF_LEN);
 		if (ret == 0) {
-			printk("<- %s\n", rsp);
+			LOG_INF("<- %s\n", rsp);
 			if (ec801e_extract_ipv4(rsp, ip, ip_len) == 0) {
 				return 0;
 			}

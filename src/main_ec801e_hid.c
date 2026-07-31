@@ -21,6 +21,7 @@
 #include "bitproto/drone_bp.h"
 #include "bitproto/socket_utls.h"
 #include "bitproto/protocol_utls.h"
+#include "drone.h"
 
 LOG_MODULE_REGISTER(main, LOG_LEVEL_INF);
 
@@ -30,12 +31,16 @@ LOG_MODULE_REGISTER(main, LOG_LEVEL_INF);
 #define MAIN_LOOP_SLEEP_MS 1000
 #define GPSEC_IO_TIMEOUT_MS 30000
 #define GPSEC_RETRY_BACKOFF_MS 1000
+#define GPSEC_ROUNDS 3
 #define GPSEC_RETRIES 3
 
 //
 #include <zephyr/kernel.h>
 
 static const char* const default_host = "192.168.1.100:8080\n";
+static const char* const serv_ip = "192.168.0.1";
+static const uint16_t serv_port = 8080;
+
 static FATFS fat_fs;
 static struct fs_mount_t mp = {
     .type = FS_FATFS,
@@ -45,22 +50,7 @@ static struct fs_mount_t mp = {
 
 static char last_host_value[HOSTS_BUF_SIZE];
 static bool host_value_valid;
-static uint32_t g_seq;
-
-//  消费者/接收方
-void consumer_thread(void* p1, void* p2, void* p3)
-{
-    while (k_sem_take(&sync_sem, K_FOREVER) == 0)
-    {
-        printk("Consumer: Processed the event!\n");
-    }
-}
-
-#define STACK_SIZE 1024
-#define PRIORITY 7
-
-K_THREAD_DEFINE(cons_id, STACK_SIZE, consumer_thread, NULL, NULL, NULL, PRIORITY, 0, 0);
-
+//
 static void trim_line_end(char* s)
 {
     size_t n = strlen(s);
@@ -190,6 +180,51 @@ static bool hosts_addr_is_valid(const char* addr)
     return parse_host_port(addr, host, sizeof(host), &port) == 0;
 }
 
+/*
+ * Write an 11-byte FAT volume label into the VBR so the host OS sees a name.
+ * It writes both FAT12/16 label offset (43) and FAT32 label offset (71).
+ * pdrv: disk driver name (e.g. DISK_NAME)
+ * label: ASCII label (up to 11 chars). Shorter labels will be space-padded.
+ */
+static int set_fat_volume_label(const char* pdrv, const char* label)
+{
+    uint8_t sector[512];
+    char lab[11];
+    int ret;
+    size_t i;
+
+    if (pdrv == NULL || label == NULL)
+    {
+        return -EINVAL;
+    }
+
+    /* prepare 11-byte label (space-padded) */
+    memset(lab, ' ', sizeof(lab));
+    for (i = 0; i < sizeof(lab) && label[i]; ++i)
+    {
+        lab[i] = label[i];
+    }
+
+    ret = disk_access_read(pdrv, sector, 0, 1);
+    if (ret)
+    {
+        return ret;
+    }
+
+    /* FAT12/16 volume label field */
+    memcpy(&sector[43], lab, 11);
+    /* FAT32 volume label field */
+    memcpy(&sector[71], lab, 11);
+
+    ret = disk_access_write(pdrv, sector, 0, 1);
+    if (ret)
+    {
+        return ret;
+    }
+
+    return disk_access_ioctl(pdrv, DISK_IOCTL_CTRL_SYNC, NULL);
+}
+
 /* USB setup and helpers moved to src/usb.c */
 
 static int setup_flash_disk(void)
@@ -210,6 +245,8 @@ static int setup_flash_disk(void)
         {
             return ret;
         }
+        /* Ensure the FAT volume has a readable label so host shows a name */
+        (void)set_fat_volume_label(DISK_NAME, "FLASH");
         ret = fs_mount(&mp);
         if (ret < 0)
         {
@@ -314,149 +351,6 @@ static void refresh_hosts_if_needed(void)
     }
 }
 
-static void fill_drone(struct Drone* drone, uint32_t seq)
-{
-    memset(drone, 0, sizeof(*drone));
-
-    drone->status = DRONE_STATUS_RISING;
-    drone->position.longitude = 2000U + seq;
-    drone->position.latitude = 3000U + seq;
-    drone->position.altitude = 1080U + seq;
-    drone->flight.pose.yaw = 4321 + (int32_t)seq;
-    drone->flight.pose.pitch = 1234 + (int32_t)seq;
-    drone->flight.pose.roll = 5678 + (int32_t)seq;
-    drone->flight.acceleration[0] = -1001 - (int32_t)seq;
-    drone->flight.acceleration[1] = 1002 + (int32_t)seq;
-    drone->flight.acceleration[2] = 1003 + (int32_t)seq;
-    drone->power.is_charging = ((seq % 2U) == 0U);
-    drone->power.battery = 98;
-    drone->power.status = POWER_STATUS_ON;
-    drone->propellers[0].id = 1;
-    drone->propellers[0].direction = ROTATING_DIRECTION_CLOCK_WISE;
-    drone->propellers[0].status = PROPELLER_STATUS_ROTATING;
-    drone->network.signal = 15;
-    drone->network.heartbeat_at = 1611280511628LL + (int64_t)seq;
-    drone->landing_gear.status = LANDING_GEAR_STATUS_FOLDED;
-}
-
-int connect_active_socket(void)
-{
-    const char* serv_addr = get_serv_addr();
-    char host[80];
-    uint16_t port;
-    char port_str[8];
-    struct zsock_addrinfo hints = {
-        .ai_family = AF_INET,
-        .ai_socktype = SOCK_STREAM,
-        .ai_protocol = IPPROTO_TCP,
-    };
-    struct zsock_addrinfo* res = NULL;
-    struct zsock_timeval timeout = {
-        .tv_sec = GPSEC_IO_TIMEOUT_MS / 1000,
-        .tv_usec = 0,
-    };
-    int sock = -1;
-    int ret;
-
-    ret = parse_host_port(serv_addr, host, sizeof(host), &port);
-    if (ret < 0)
-    {
-        printk("invalid active address: %s\n", serv_addr);
-        return ret;
-    }
-
-    snprintk(port_str, sizeof(port_str), "%u", (unsigned int)port);
-    ret = zsock_getaddrinfo(host, port_str, &hints, &res);
-    if (ret != 0 || res == NULL)
-    {
-        printk("resolve failed for %s:%s (%d)\n", host, port_str, ret);
-        return -EHOSTUNREACH;
-    }
-
-    sock = zsock_socket(res->ai_family, res->ai_socktype, res->ai_protocol);
-    if (sock < 0)
-    {
-        ret = -errno;
-        zsock_freeaddrinfo(res);
-        return ret;
-    }
-
-    (void)zsock_setsockopt(sock, SOL_SOCKET, SO_RCVTIMEO, &timeout, sizeof(timeout));
-    (void)zsock_setsockopt(sock, SOL_SOCKET, SO_SNDTIMEO, &timeout, sizeof(timeout));
-
-    ret = zsock_connect(sock, res->ai_addr, res->ai_addrlen);
-    zsock_freeaddrinfo(res);
-    if (ret < 0)
-    {
-        ret = -errno;
-        (void)zsock_close(sock);
-        return ret;
-    }
-
-    return sock;
-}
-
-int run_roundtrip_once(void)
-{
-    int sock;
-    int ret;
-    struct Drone drone = {0};
-    struct Drone reply_drone = {0};
-    uint8_t payload[BYTES_LENGTH_DRONE] = {0};
-    uint8_t reply[BYTES_LENGTH_DRONE] = {0};
-    size_t payload_len;
-    size_t reply_len = 0;
-
-    sock = connect_active_socket();
-    if (sock < 0)
-    {
-        return sock;
-    }
-
-    fill_drone(&drone, g_seq);
-    payload_len = EncodeDrone(&drone, (unsigned char*)payload);
-    if (payload_len != BYTES_LENGTH_DRONE)
-    {
-        (void)zsock_close(sock);
-        return -EINVAL;
-    }
-
-    ret = write_frame(sock, payload, payload_len);
-    if (ret < 0)
-    {
-        (void)zsock_close(sock);
-        return ret;
-    }
-
-    ret = read_frame(sock, reply, sizeof(reply), &reply_len);
-    if (ret < 0)
-    {
-        (void)zsock_close(sock);
-        return ret;
-    }
-
-    if (reply_len != payload_len || memcmp(reply, payload, payload_len) != 0)
-    {
-        (void)zsock_close(sock);
-        return -EIO;
-    }
-
-    if (DecodeDrone(&reply_drone, (unsigned char*)reply) != BYTES_LENGTH_DRONE)
-    {
-        (void)zsock_close(sock);
-        return -EBADMSG;
-    }
-
-    printk("[TCP] seq=%u ok active=%s lat=%u lon=%u alt=%u\n",
-           (unsigned int)g_seq,
-           get_serv_addr(),
-           (unsigned int)reply_drone.position.latitude,
-           (unsigned int)reply_drone.position.longitude,
-           (unsigned int)reply_drone.position.altitude);
-    g_seq++;
-    (void)zsock_close(sock);
-    return 0;
-}
 
 static void print_ec801e_diag(void)
 {
@@ -485,6 +379,33 @@ static void print_ec801e_diag(void)
         printk("EC801E EN pin level: %d\n", en_level);
     }
 }
+
+//
+//  消费者/接收方
+void consumer_thread(void* p1, void* p2, void* p3)
+{
+    while (k_sem_take(&sync_sem, K_FOREVER) == 0)
+    {
+        printk("Consumer: Processed the event!\n");
+        char host_value[HOSTS_BUF_SIZE];
+        int ret = read_hosts(host_value, sizeof(host_value));
+        if (ret < 0)
+        {
+            printk("Failed to read hosts.txt: %d\n", ret);
+            continue;
+        }
+        else
+        {
+            printk("Consumer: Read hosts.txt: %s\n", host_value);
+        }
+    }
+}
+
+#define STACK_SIZE 1024
+#define PRIORITY 7
+
+K_THREAD_DEFINE(cons_id, STACK_SIZE, consumer_thread, NULL, NULL, NULL, PRIORITY, 0, 0);
+
 
 int main(void)
 {
@@ -515,8 +436,21 @@ int main(void)
 
     printk("Starting the worker thread manually...\n");
 
-    // my_thread_id 是通过 K_THREAD_DEFINE 定义的线程 ID
-    // k_thread_start(my_thread_id);
+    for (int attempt = 1; attempt <= GPSEC_RETRIES; attempt++)
+    {
+        ret = run_roundtrip_session(serv_ip, serv_port);
+        if (ret == 0)
+        {
+            printk("GPSEC tcpip example done rounds=%d attempt=%d\n", GPSEC_ROUNDS, attempt);
+            break;
+        }
+
+        printk("GPSEC attempt %d/%d failed: %d\n", attempt, GPSEC_RETRIES, ret);
+        if (attempt < GPSEC_RETRIES)
+        {
+            k_sleep(K_MSEC(GPSEC_RETRY_BACKOFF_MS));
+        }
+    }
 
 
     while (true)

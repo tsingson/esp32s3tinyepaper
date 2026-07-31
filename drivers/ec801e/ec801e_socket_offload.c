@@ -8,10 +8,11 @@
 #include <zephyr/net/socket.h>
 #include <zephyr/net/socket_offload.h>
 #include <zephyr/sys/fdtable.h>
-#include <zephyr/sys/printk.h>
+#include <zephyr/logging/log.h>
 #include <zephyr/sys/util.h>
 
 #include "ec801e.h"
+LOG_MODULE_DECLARE(ec801e);
 
 struct ec801e_socket_ctx {
 	int fd;
@@ -41,7 +42,7 @@ static bool g_offload_registered;
 #define EC801E_OFFLOAD_VLOG(...) \
 	do { \
 		if (IS_ENABLED(CONFIG_EC801E_VERBOSE_LOG)) { \
-			printk(__VA_ARGS__); \
+			LOG_DBG(__VA_ARGS__); \
 		} \
 	} while (0)
 
@@ -117,7 +118,7 @@ static int ec801e_sock_connect(void *obj, const struct net_sockaddr *addr, net_s
 
 	ret = ec801e_socket_stack_init(NULL);
 	if (ret < 0) {
-		printk("EC801E offload stack init failed: %d\n", ret);
+		LOG_INF("EC801E offload stack init failed: %d\n", ret);
 		return fail_with(-ret);
 	}
 
@@ -136,7 +137,7 @@ static int ec801e_sock_connect(void *obj, const struct net_sockaddr *addr, net_s
 		ret = 0;
 	}
 	if (ret < 0) {
-		printk("EC801E offload open failed: %d\n", ret);
+		LOG_INF("EC801E offload open failed: %d\n", ret);
 		return fail_with(-ret);
 	}
 

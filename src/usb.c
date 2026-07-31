@@ -184,6 +184,7 @@ int setup_usb_msc(void)
 
     if (USBD_SUPPORTS_HIGH_SPEED&& usbd_caps_speed(&my_flash_usbd)
 
+
     ==
     USBD_SPEED_HS
     )
@@ -228,4 +229,4 @@ int setup_usb_msc(void)
 
     return usbd_enable(&my_flash_usbd);
 }
- 
+
