@@ -26,6 +26,14 @@
 LOG_MODULE_REGISTER(main, LOG_LEVEL_INF);
 
 
+/* 改变磁盘名称为 FLASH */
+#define DISK_NAME "FLASH"
+#define MOUNT_POINT "/FLASH:"
+#define TARGET_FILE_PATH "/FLASH:/hosts.txt"
+#define HOSTS_BUF_SIZE 128
+#define HOSTS_POLL_INTERVAL_MS 3000
+//
+
 #define HOSTS_BUF_SIZE 128
 #define DRONE_REPORT_INTERVAL_MS (4 * 60 * 1000)
 #define MAIN_LOOP_SLEEP_MS 1000
@@ -352,7 +360,7 @@ static void refresh_hosts_if_needed(void)
 }
 
 
-static void print_ec801e_diag(void)
+void print_ec801e_diag(void)
 {
     struct ec801e_module_info mod = {0};
     struct ec801e_signal_info sig = {0};
@@ -397,6 +405,15 @@ void consumer_thread(void* p1, void* p2, void* p3)
         else
         {
             printk("Consumer: Read hosts.txt: %s\n", host_value);
+
+            char host[80];
+            uint16_t port;
+
+            int ret = parse_host_port(host_value, host, sizeof(host), &port);
+            if (ret == 0)
+            {
+                printk("host:\t%s\tport:\t%d\n", host, port);
+            }
         }
     }
 }
@@ -430,7 +447,7 @@ int main(void)
     }
 
     printk("USB MSC + CDC ready, active=%s\n", get_serv_addr());
-    print_ec801e_diag();
+    // print_ec801e_diag();
 
     next_report_at = k_uptime_get();
 
