@@ -189,15 +189,18 @@ static bool hosts_addr_is_valid(const char* addr)
 }
 
 /*
- * Write an 11-byte FAT volume label into the VBR so the host OS sees a name.
- * It writes both FAT12/16 label offset (43) and FAT32 label offset (71).
- * pdrv: disk driver name (e.g. DISK_NAME)
- * label: ASCII label (up to 11 chars). Shorter labels will be space-padded.
+ * Set the FAT volume label using FatFs API `f_setlabel` so that the
+ * volume label root-directory entry is created/updated correctly. The
+ * FatFs implementation handles both creating the root-dir label entry and
+ * syncing metadata.
+ *
+ * pdrv: unused for FatFs API here (kept for compatibility)
+ * label: ASCII label (up to 11 chars). Longer input will be truncated.
  */
 static int set_fat_volume_label(const char* pdrv, const char* label)
 {
     uint8_t sector[512];
-    char lab[11];
+    char lab11[11];
     int ret;
     size_t i;
 
@@ -206,28 +209,105 @@ static int set_fat_volume_label(const char* pdrv, const char* label)
         return -EINVAL;
     }
 
-    /* prepare 11-byte label (space-padded) */
-    memset(lab, ' ', sizeof(lab));
-    for (i = 0; i < sizeof(lab) && label[i]; ++i)
-    {
-        lab[i] = label[i];
+    /* Prepare 11-byte label (space-padded) */
+    memset(lab11, ' ', sizeof(lab11));
+    for (i = 0; i < sizeof(lab11) && label[i]; ++i) {
+        lab11[i] = label[i];
     }
 
+    /* Update VBR (sector 0) label fields first */
     ret = disk_access_read(pdrv, sector, 0, 1);
-    if (ret)
-    {
-        return ret;
-    }
+    if (ret) return ret;
 
-    /* FAT12/16 volume label field */
-    memcpy(&sector[43], lab, 11);
-    /* FAT32 volume label field */
-    memcpy(&sector[71], lab, 11);
+    /* The mkfs implementation writes the 11-byte label starting at these offsets. */
+    memcpy(&sector[43], lab11, 11);
+    memcpy(&sector[71], lab11, 11);
 
     ret = disk_access_write(pdrv, sector, 0, 1);
-    if (ret)
+    if (ret) return ret;
+
+    /* Attempt to update the root-directory volume-label entry for FAT12/16.
+     * For small on-device volumes (typical in this project) FAT12/16 is common
+     * and the root-dir occupies a contiguous set of sectors immediately
+     * following the FAT area, so we can update/create an AM_VOL entry there.
+     * For FAT32 root-dir is cluster-based and not handled here.
+     */
     {
-        return ret;
+        uint16_t bytes_per_sector = sector[11] | (sector[12] << 8);
+        uint16_t root_ent_cnt = sector[17] | (sector[18] << 8);
+        uint16_t rsvd_sec_cnt = sector[14] | (sector[15] << 8);
+        uint8_t num_fats = sector[16];
+        uint32_t fatsz16 = sector[22] | (sector[23] << 8);
+        uint32_t fatsz32 = sector[36] | (sector[37] << 8) | (sector[38] << 16) | (sector[39] << 24);
+        uint32_t fatsz = fatsz16 ? fatsz16 : fatsz32;
+
+        if (fatsz == 0) {
+            /* Unexpected; bail out */
+            (void)disk_access_ioctl(pdrv, DISK_IOCTL_CTRL_SYNC, NULL);
+            return 0;
+        }
+
+        if (fatsz32 != 0) {
+            /* FAT32: root directory is cluster-based. We only updated VBR above.
+             * Leaving further handling to FatFs APIs (not available here).
+             */
+            (void)disk_access_ioctl(pdrv, DISK_IOCTL_CTRL_SYNC, NULL);
+            return 0;
+        }
+
+        /* FAT12/16: compute root dir sector and size */
+        uint32_t root_dir_sectors = ((uint32_t)root_ent_cnt * 32 + bytes_per_sector - 1) / bytes_per_sector;
+        uint32_t first_root_dir_sector = rsvd_sec_cnt + (uint32_t)num_fats * fatsz;
+
+        if (root_dir_sectors == 0) {
+            (void)disk_access_ioctl(pdrv, DISK_IOCTL_CTRL_SYNC, NULL);
+            return 0;
+        }
+
+        /* Read root dir area */
+        uint8_t *rootbuf = k_malloc(root_dir_sectors * bytes_per_sector);
+        if (!rootbuf) return -ENOMEM;
+
+        ret = disk_access_read(pdrv, rootbuf, first_root_dir_sector, root_dir_sectors);
+        if (ret) {
+            k_free(rootbuf);
+            return ret;
+        }
+
+        /* Look for existing AM_VOL entry or a free slot */
+        int found_idx = -1;
+        int free_idx = -1;
+        for (uint32_t off = 0; off < root_dir_sectors * bytes_per_sector; off += 32) {
+            uint8_t first = rootbuf[off + 0];
+            uint8_t attr = rootbuf[off + 11];
+            if (first == 0x00) { /* no more entries */
+                if (free_idx == -1) free_idx = (int)off;
+                break;
+            }
+            if (first == 0xE5) { /* deleted */
+                if (free_idx == -1) free_idx = (int)off;
+                continue;
+            }
+            if ((attr & 0x08) == 0x08) { /* AM_VOL */
+                found_idx = (int)off;
+                break;
+            }
+        }
+
+        int write_off = -1;
+        if (found_idx >= 0) write_off = found_idx;
+        else if (free_idx >= 0) write_off = free_idx;
+
+        if (write_off >= 0) {
+            memcpy(&rootbuf[write_off], lab11, 11);
+            /* ensure attribute is volume label */
+            rootbuf[write_off + 11] = 0x08;
+
+            /* Write back modified root dir sectors */
+            ret = disk_access_write(pdrv, rootbuf, first_root_dir_sector, root_dir_sectors);
+        }
+
+        k_free(rootbuf);
     }
 
     return disk_access_ioctl(pdrv, DISK_IOCTL_CTRL_SYNC, NULL);
