@@ -45,9 +45,9 @@ LOG_MODULE_REGISTER(main, LOG_LEVEL_INF);
 //
 #include <zephyr/kernel.h>
 
-static const char* const default_host = "192.168.1.100:8080\n";
-static const char* const serv_ip = "192.168.0.1";
-static const uint16_t serv_port = 8080;
+static const char* const default_host = "142.54.180.58:8061\n";
+ static  char*  serv_ip = "142.54.180.58";
+static   uint16_t serv_port = 8061;
 
 static FATFS fat_fs;
 static struct fs_mount_t mp = {
@@ -493,6 +493,8 @@ void consumer_thread(void* p1, void* p2, void* p3)
             if (ret == 0)
             {
                 printk("host:\t%s\tport:\t%d\n", host, port);
+                serv_ip = host;
+                serv_port = port;
             }
         }
     }

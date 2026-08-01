@@ -25,6 +25,6 @@
 
 
 void fill_drone(struct Drone* drone, int seq);
-int run_roundtrip_session(const char* srv_ip, uint16_t srv_port);
+int run_roundtrip_session(  char* srv_ip, uint16_t srv_port);
 
 #endif //ESP32_CHIP_INFO_DRONE_H

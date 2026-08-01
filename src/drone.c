@@ -30,7 +30,7 @@ void fill_drone(struct Drone* drone, int seq)
     drone->landing_gear.status = LANDING_GEAR_STATUS_FOLDED;
 }
 
-int run_roundtrip_session(const char* srv_ip, uint16_t srv_port)
+int run_roundtrip_session(  char* srv_ip, uint16_t srv_port)
 {
     int ret = 0;
 
