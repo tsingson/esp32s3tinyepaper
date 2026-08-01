@@ -1,0 +1,5 @@
+mainmenu "esp32s3tinyepaper"
+
+source "Kconfig.zephyr"
+
+rsource "drivers/Kconfig"

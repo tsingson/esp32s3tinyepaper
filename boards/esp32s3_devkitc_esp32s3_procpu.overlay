@@ -4,58 +4,56 @@
 
 / {
 	chosen {
-		/* 将系统控制台绑定到 ESP32-S3 内置的 USB-JTAG 串行外设上 */
-		zephyr,console = &usb_serial;
-		zephyr,shell-uart = &usb_serial;
+		zephyr,console = &cdc_acm0;
+		zephyr,shell-uart = &cdc_acm0;
+		/* 关键：将 Zephyr 的文件系统存储分区绑定到我们划分的 flash 分区 */
+		zephyr,flash-disk = &msc_disk0;
 	};
 
 	aliases {
 		led-strip = &led_strip;
+		e801-uart = &uart1;
 	};
-};
 
-
-/ {
 	epd_cfg: epd_cfg {
 		epd-dc-gpios = <&gpio0 3 GPIO_ACTIVE_HIGH>;
 		epd-cs-gpios = <&gpio0 4 GPIO_ACTIVE_LOW>;
 		epd-busy-gpios = <&gpio0 5 GPIO_ACTIVE_HIGH>;
 		epd-reset-gpios = <&gpio0 6 GPIO_ACTIVE_HIGH>;
 	};
+
+	msc_disk0: msc_disk0 {
+		compatible = "zephyr,flash-disk";
+		partition = <&storage_partition>;
+		disk-name = "FLASH";
+		cache-size = <4096>;
+		sector-size = <512>;
+		status = "okay";
+	};
+
+	ec801e_mdm: ec801e_mdm {
+		compatible = "quectel,ec801e";
+		status = "okay";
+		mdm-uart = <&uart1>;
+		mdm-power-gpios = <&gpio0 9 GPIO_ACTIVE_LOW>;
+	};
 };
 
+
+
+
+/* 保持你原有的 pinctrl, spi3, uart1, i2s0 节点不变 */
 &pinctrl {
-	epd_spi3_default: epd_spi3_default {
-		group1 {
-			pinmux = <SPIM3_SCLK_GPIO1>,
-				 <SPIM3_MOSI_GPIO2>;
-		};
-	};
+	epd_spi3_default: epd_spi3_default { group1 { pinmux = <SPIM3_SCLK_GPIO1>, <SPIM3_MOSI_GPIO2>; }; };
+	uart1_modem_default: uart1_modem_default { group1 { pinmux = <UART1_TX_GPIO8>, <UART1_RX_GPIO7>; }; };
 };
-
-&i2c0 {
-	status = "disabled";
-};
-
-&i2c1 {
-	status = "disabled";
-};
-
-&spi3 {
-	status = "okay";
-	pinctrl-0 = <&epd_spi3_default>;
-	pinctrl-names = "default";
-};
-
-&i2s0_default {
-	group1 {
-		pinmux = <I2S0_O_SD_GPIO38>;
-	};
-};
-
+&i2c0 { status = "disabled"; };
+&i2c1 { status = "disabled"; };
+&spi3 { status = "okay"; pinctrl-0 = <&epd_spi3_default>; pinctrl-names = "default"; };
+&uart1 { status = "okay"; current-speed = <115200>; pinctrl-0 = <&uart1_modem_default>; pinctrl-names = "default"; };
+&i2s0_default { group1 { pinmux = <I2S0_O_SD_GPIO38>; }; };
 &i2s0 {
 	status = "okay";
-
 	led_strip: ws2812@0 {
 		compatible = "worldsemi,ws2812-i2s";
 		reg = <0>;
@@ -64,11 +62,63 @@
 		reset-delay = <300>;
 	};
 };
+&dma { status = "okay"; };
 
-&dma {
+
+/* 开启 ESP32-S3 的原生 USB-OTG 控制器 */
+&usb_otg {
 	status = "okay";
 };
 
+&zephyr_udc0 {
+	cdc_acm0: cdc_acm_uart0 {
+		compatible = "zephyr,cdc-acm-uart";
+	};
+};
+
+/* 保持内置 USB-JTAG 调试串口处于开启状态 */
 &usb_serial {
 	status = "okay";
+};
+
+/* ========================================================================= */
+/* 核心修正：彻底清理原厂分区，重新按你的 256KB 需求划分存储区 */
+/* ========================================================================= */
+&flash0 {
+	/* 1. 先安全剔除官方底层的旧分区节点，防止任何标签和地址冲突 */
+	/delete-node/ partitions;
+
+	/* 2. 重新构建干净的分区表 */
+	partitions {
+		compatible = "fixed-partitions";
+		#address-cells = <1>;
+		#size-cells = <1>;
+
+		/* 引导加载程序预留区（ESP-IDF 架构下固定为从 0x0 开始的前 64KB） */
+		boot_partition: partition@0 {
+			label = "mcuboot";
+			reg = <0x00000000 0x00010000>; /* 64KB */
+		};
+
+		/* 应用程序固件主分区：
+		 * 起始地址移至 0x10000 (64KB)。
+		 * 假设你的硬件是 4MB Flash (0x400000 字节)，
+		 * 剔除前 64KB 的 boot 和后 256KB 的存储区后，剩余空间全部划给 App 固件。 */
+		slot0_partition: partition@10000 {
+			label = "image-0";
+			reg = <0x00010000 0x003B0000>; /* 3776KB 空间 */
+		};
+
+		/* 你的虚拟持久化 U 盘存储区（保留给电脑可读写 hosts.txt） */
+		storage_partition: partition@3C0000 {
+			label = "storage";
+			reg = <0x003C0000 0x0003F000>; /* 252KB */
+		};
+
+		/* 激活地址私有分区：不映射到 U 盘，避免被主机直接改写 */
+		activeaddr_partition: partition@3FF000 {
+			label = "activeaddr";
+			reg = <0x003FF000 0x00001000>; /* 4KB */
+		};
+	};
 };

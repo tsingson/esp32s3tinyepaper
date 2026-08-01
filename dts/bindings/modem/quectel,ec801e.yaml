@@ -1,0 +1,16 @@
+description: Quectel EC801E modem attached over UART
+
+compatible: "quectel,ec801e"
+
+include: base.yaml
+
+properties:
+  mdm-uart:
+    type: phandle
+    required: true
+    description: UART controller connected to the EC801E AT interface.
+
+  mdm-power-gpios:
+    type: phandle-array
+    required: false
+    description: GPIO used to control or power-cycle the modem.

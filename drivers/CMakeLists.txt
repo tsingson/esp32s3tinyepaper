@@ -1,0 +1,1 @@
+add_subdirectory_ifdef(CONFIG_EC801E ec801e)
